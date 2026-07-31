@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --bg:#f4f1eb;--surface:#fff;--surface2:#f9f7f3;--border:#e2ddd6;
@@ -329,7 +330,6 @@ td.num{font-family:'IBM Plex Mono',monospace;text-align:right;font-size:11px}
   .hamburger{display:flex}
   .sidebar{position:fixed;top:48px;left:0;bottom:0;z-index:150;width:275px;min-width:0;transform:translateX(-100%);transition:transform .25s ease;box-shadow:4px 0 20px rgba(0,0,0,.12)}
   .sidebar.open{transform:translateX(0)}
-  .sidebar-overlay{display:block}
   .main{flex-direction:column}
   .content{padding:12px}
   .stats-layout{grid-template-columns:1fr 1fr}
@@ -416,11 +416,18 @@ td.num{font-family:'IBM Plex Mono',monospace;text-align:right;font-size:11px}
 <body>
 <div id="appRoot" style="position:relative;min-height:100vh;overflow-x:hidden;">
 
-<!-- ══ HOME ══ -->
+<!-- ══ LOGIN ══ -->
 <div id="homeScreen">
   <div class="home-title">Glance<span>Bit</span></div>
-  <div class="home-sub">INTELLIGENCE PLATFORM</div>
-  <button class="home-enter" onclick="goHub()">INGRESAR →</button>
+  <div class="home-sub">COMPULSAS CON OFERTAS</div>
+  <form id="loginForm" onsubmit="doLogin(event)" style="display:flex;flex-direction:column;gap:12px;width:280px">
+    <input id="loginUser" type="email" autocomplete="username" placeholder="Usuario" required
+      style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:11px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;outline:none">
+    <input id="loginPass" type="password" autocomplete="current-password" placeholder="Contraseña" required
+      style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:11px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;outline:none">
+    <button id="loginBtn" type="submit" class="home-enter" style="margin-top:4px">INGRESAR →</button>
+    <div id="loginError" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#ff8a70;text-align:center;min-height:14px"></div>
+  </form>
 </div>
 
 <!-- ══ HUB ══ -->
@@ -574,7 +581,7 @@ td.num{font-family:'IBM Plex Mono',monospace;text-align:right;font-size:11px}
   </div>
   <div class="hmeta">
     <span class="hcount" id="headerCount">—</span>
-    <button class="home-btn" onclick="goHub()">⌂ Módulos</button> <button class="home-btn" onclick="exportPDF()" style="background:var(--accent);color:#fff;border-color:var(--accent)">&#128196; Exportar PDF</button>
+    <button class="home-btn" onclick="logout()">⏻ Cerrar sesión</button> <button class="home-btn" onclick="exportPDF()" style="background:var(--accent);color:#fff;border-color:var(--accent)">&#128196; Exportar PDF</button>
   </div>
 </header>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -708,6 +715,142 @@ const META_COLS = new Set(['FECHA','ORDEN','ID','MEDICACION','RESIDENCIA','DROGA
 function getVendorCols(rows){
   return rows && rows.length ? Object.keys(rows[0]).filter(k=>!META_COLS.has(k)) : [];
 }
+
+// ══ SUPABASE — LOGIN Y CARGA DE DATOS ══
+// La anon key es pública a propósito (está diseñada para vivir en el navegador);
+// lo que protege los datos es la Row Level Security del lado del servidor,
+// no que esta clave esté oculta.
+const SUPABASE_URL = 'https://tfdbxqktnkskygaztbaw.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_RPA-KPEzFa3HjAxWgUM-cQ_nDR4KH5w';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function doLogin(ev){
+  if (ev) ev.preventDefault();
+  const email = document.getElementById('loginUser').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const btn   = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  btn.disabled = true; btn.textContent = 'Ingresando…';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  btn.disabled = false; btn.textContent = 'INGRESAR →';
+  if (error) { errEl.textContent = 'Usuario o contraseña incorrectos'; return; }
+  document.getElementById('homeScreen').style.display = 'none';
+  await loadFromSupabase();
+}
+
+async function logout(){
+  await sb.auth.signOut();
+  RESUMEN = []; DETALLE = []; MODE = null;
+  document.getElementById('mainHeader').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('homeScreen').style.display = 'flex';
+}
+
+// Supabase/PostgREST devuelve como máximo 1000 filas por consulta aunque no
+// se pida un límite — hay que pedir de a páginas. Se pide el total con la
+// primera página y el resto de las páginas se piden todas en paralelo
+// (mucho más rápido que una por una).
+async function fetchAllRows(table, onProgress){
+  const pageSize = 1000;
+  const first = await sb.from(table).select('*', {count:'exact'}).range(0, pageSize - 1);
+  if (first.error) throw first.error;
+  let all = first.data;
+  const total = first.count ?? all.length;
+  if (onProgress) onProgress(all.length, total);
+  if (all.length < total){
+    const pages = [];
+    for (let from = pageSize; from < total; from += pageSize){
+      pages.push(sb.from(table).select('*').range(from, from + pageSize - 1));
+    }
+    const results = await Promise.all(pages);
+    for (const r of results){
+      if (r.error) throw r.error;
+      all = all.concat(r.data);
+    }
+    if (onProgress) onProgress(all.length, total);
+  }
+  return all;
+}
+
+async function loadFromSupabase(){
+  document.getElementById('loadScreen').style.display = 'flex';
+  document.getElementById('loadTitle').textContent = 'Cargando compulsas con ofertas…';
+  setProgress(10, 'Conectando…');
+  let resumenData, detalleData;
+  try {
+    resumenData = await fetchAllRows('resumen', n => setProgress(10 + Math.min(n/50, 30), 'Descargando resumen… ('+n+')'));
+    detalleData = await fetchAllRows('detalle', n => setProgress(40 + Math.min(n/3000, 25), 'Descargando cotizaciones… ('+n+')'));
+  } catch (error) {
+    document.getElementById('loadScreen').style.display = 'none';
+    alert('Error cargando datos: ' + error.message);
+    document.getElementById('homeScreen').style.display = 'flex';
+    return;
+  }
+  const resResp = { data: resumenData }, detResp = { data: detalleData };
+  setProgress(65, 'Procesando…');
+  RESUMEN = resResp.data.map(row => {
+    const base = {
+      FECHA: row.fecha ? new Date(row.fecha + 'T00:00:00') : null,
+      ORDEN: row.orden,
+      ID: row.item_id,
+      MEDICACION: row.medicacion,
+      RESIDENCIA: row.residencia ? String(row.residencia).toUpperCase().trim() : null,
+      DROGA: row.droga,
+      FORMA: row.forma,
+      POTENCIA: row.potencia,
+      CANTIDAD_LICITADA: row.cantidad_licitada,
+      PRECIO_MIN: row.precio_min,
+      CANT_PROVEEDORES: row.cant_proveedores,
+      TOTAL_RENGLON: row.total_renglon,
+    };
+    return Object.assign(base, row.vendor_prices || {});
+  });
+  // getVendorCols() arma la lista de proveedores mirando las claves del
+  // PRIMER renglón de RESUMEN. Como vendor_prices solo trae los proveedores
+  // que cotizaron ESE ítem puntual (para no guardar N/C de más), un renglón
+  // con pocos oferentes dejaría fuera del ranking a todos los demás
+  // proveedores del resto del dataset. Se completa cada renglón con TODAS
+  // las columnas de proveedor vistas en cualquier renglón (en null si no
+  // cotizó ahí), igual que hacía el Excel original.
+  const allVendors = new Set();
+  RESUMEN.forEach(r => { Object.keys(r).forEach(k => { if (!META_COLS.has(k)) allVendors.add(k); }); });
+  RESUMEN.forEach(r => { allVendors.forEach(v => { if (!(v in r)) r[v] = null; }); });
+  DETALLE = detResp.data.map(row => ({
+    FECHA: row.fecha ? new Date(row.fecha + 'T00:00:00') : null,
+    PROVEEDOR: row.proveedor,
+    ORDEN: row.orden,
+    ID: row.item_id,
+    EXPEDIENTE: row.expediente,
+    CANTIDAD_LICITADA: row.cantidad_licitada,
+    MEDICACION: row.medicacion,
+    RESIDENCIA: row.residencia ? String(row.residencia).toUpperCase().trim() : null,
+    COTIZA: row.cotiza ? String(row.cotiza).toUpperCase().trim() : 'NO',
+    PRECIO_UNITARIO: row.precio_unitario,
+    PRECIO_TOTAL: row.precio_total,
+    CANTIDAD_OFERTADA: row.cantidad_ofertada,
+    MARCA_PRESENTACION: row.marca_presentacion,
+  }));
+  RESUMEN.forEach((r,i)=>{ r._idx = i; });
+  MODE = 'jueves';
+  setProgress(90, 'Construyendo interfaz…');
+  setTimeout(() => {
+    buildUI();
+    document.getElementById('loadScreen').style.display = 'none';
+    document.getElementById('mainHeader').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'flex';
+  }, 200);
+}
+
+// Si ya había una sesión activa (recargaste la página), entrar directo sin pedir login de nuevo
+sb.auth.getSession().then(({data}) => {
+  if (data && data.session) {
+    document.getElementById('homeScreen').style.display = 'none';
+    loadFromSupabase();
+  }
+});
 
 // ══ HOME / FLOW ══
 function goHome() {
