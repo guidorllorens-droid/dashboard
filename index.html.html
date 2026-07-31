@@ -1,0 +1,3012 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlanceBit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg:#f4f1eb;--surface:#fff;--surface2:#f9f7f3;--border:#e2ddd6;
+  --accent:#c8421a;--accent2:#1a4fc8;--green:#1a7a4a;
+  --text:#1a1814;--muted:#8a8278;--muted2:#b5b0a8;--tag-bg:#f0ede8;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ── HOME ── */
+#homeScreen{
+  position:absolute;inset:0;z-index:500;
+  background:var(--text);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
+}
+.home-brand{ display:none; }
+.home-title{
+  font-family:'Bebas Neue',sans-serif;font-size:76px;letter-spacing:4px;
+  color:#fff;line-height:1;margin-bottom:6px;text-align:center;
+}
+.home-title span{color:var(--accent)}
+.home-sub{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;
+  color:rgba(255,255,255,.3);margin-bottom:52px;letter-spacing:2px;
+}
+.home-enter{
+  font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:1px;
+  color:rgba(255,255,255,.35);padding:10px 28px;border:1px solid rgba(255,255,255,.15);
+  border-radius:6px;background:none;cursor:pointer;transition:all .2s;
+}
+.home-enter:hover{color:#fff;border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.06)}
+
+/* ── HUB ── */
+#hubScreen{
+  position:absolute;inset:0;z-index:490;
+  background:var(--text);
+  display:none;flex-direction:column;align-items:stretch;
+}
+.hub-topbar{
+  height:52px;padding:0 32px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+.hub-logo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:#fff}
+.hub-logo span{color:var(--accent)}
+.hub-back{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(255,255,255,.35);
+  background:none;border:none;cursor:pointer;transition:color .2s;padding:0;
+}
+.hub-back:hover{color:rgba(255,255,255,.8)}
+.hub-body{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;padding:32px;
+}
+.hub-greeting{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:2px;
+  color:rgba(255,255,255,.25);margin-bottom:24px;text-transform:uppercase;
+}
+.hub-modules{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:100%;max-width:820px;
+}
+.hub-module{
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;padding:28px 24px 24px;cursor:pointer;
+  display:flex;flex-direction:column;gap:10px;
+  transition:all .22s;position:relative;overflow:hidden;
+}
+.hub-module:hover{background:rgba(255,255,255,.07);transform:translateY(-3px)}
+.hub-module.disabled{opacity:.38;cursor:not-allowed;pointer-events:none}
+.hub-module::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--module-color,rgba(255,255,255,.2));
+}
+.hub-module .hm-icon{font-size:28px;margin-bottom:4px}
+.hub-module .hm-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:#fff}
+.hub-module .hm-org{font-family:'IBM Plex Mono',monospace;font-size:10px;color:rgba(255,255,255,.35);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px}
+.hub-module .hm-desc{font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(255,255,255,.4);line-height:1.6}
+.hub-module .hm-tag{
+  display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:10px;
+  padding:3px 8px;border-radius:4px;margin-top:6px;align-self:flex-start;
+  background:rgba(255,255,255,.06);color:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.1);
+}
+.hub-module.mod-pre{--module-color:#3b6aff}
+.hub-module.mod-pre:hover{border-color:rgba(59,106,255,.35)}
+.hub-module.mod-pre .hm-tag{background:rgba(59,106,255,.18);color:#8aabff;border-color:rgba(59,106,255,.3)}
+.hub-module.mod-result{--module-color:var(--accent)}
+.hub-module.mod-result:hover{border-color:rgba(200,66,26,.35)}
+.hub-module.mod-result .hm-tag{background:rgba(200,66,26,.18);color:#ffb59a;border-color:rgba(200,66,26,.3)}
+.hub-module.mod-judicial{--module-color:#a855f7}
+.hub-module.mod-judicial .hm-tag{background:rgba(168,85,247,.18);color:#d8b4fe;border-color:rgba(168,85,247,.3)}
+.home-footer{font-family:'IBM Plex Mono',monospace;font-size:10px;color:rgba(255,255,255,.2);letter-spacing:1px}
+
+/* ── LOADING ── */
+#loadScreen{
+  position:absolute;inset:0;z-index:400;background:var(--bg);
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+}
+#loadScreen h2{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:2px}
+#loadScreen p{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted)}
+.progress-track{width:300px;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .4s;width:0%}
+
+/* ── FILE PICKER ── */
+#filePicker{
+  position:absolute;inset:0;z-index:450;background:var(--bg);
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+}
+#filePicker h2{font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:2px}
+#filePicker .fp-type{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin-top:-10px}
+.drop-zone{
+  width:380px;height:140px;border:2px dashed var(--border);border-radius:12px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  cursor:pointer;transition:all .2s;background:var(--surface);
+}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:#fff5f2}
+.dz-icon{font-size:32px}
+.dz-text{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}
+.dz-sub{font-size:11px;color:var(--muted2)}
+#fileInput{display:none}
+.fp-back{
+  background:none;border:1px solid var(--border);color:var(--muted);
+  border-radius:6px;padding:7px 18px;cursor:pointer;font-family:'Barlow',sans-serif;
+  font-size:12px;font-weight:600;transition:all .2s;
+}
+.fp-back:hover{border-color:var(--text);color:var(--text)}
+
+/* ── HEADER ── */
+header{
+  height:52px;padding:0 24px;background:var(--text);color:#fff;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.hlogo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:#fff}
+.hlogo span{color:var(--accent)}
+.hmode-badge{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 10px;border-radius:20px;
+  margin-left:10px;
+}
+.hmode-lunes{background:rgba(26,79,200,.4);color:#8aabff}
+.hmode-jueves{background:rgba(200,66,26,.4);color:#ffb59a}
+.hmeta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(255,255,255,.5);text-align:right;line-height:1.8;display:flex;align-items:center;gap:12px}
+.hcount{color:rgba(255,255,255,.9)}
+.home-btn{
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);
+  border-radius:6px;padding:5px 12px;cursor:pointer;font-family:'IBM Plex Mono',monospace;
+  font-size:11px;transition:all .2s;
+}
+.home-btn:hover{background:rgba(255,255,255,.18);color:#fff}
+.hamburger{
+  display:none;flex-direction:column;justify-content:center;gap:5px;
+  width:34px;height:34px;cursor:pointer;padding:6px;
+  border:none;background:none;border-radius:6px;
+}
+.hamburger span{display:block;height:2px;background:#fff;border-radius:2px;transition:all .2s}
+.hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.hamburger.open span:nth-child(2){opacity:0}
+.hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+.sidebar-overlay{
+  display:none;position:fixed;inset:0;z-index:140;
+  background:rgba(26,24,20,.5);backdrop-filter:blur(2px);
+}
+
+/* ── LAYOUT ── */
+.main{display:flex;min-height:calc(100vh - 52px)}
+.sidebar{
+  width:255px;min-width:255px;background:var(--surface);
+  border-right:1px solid var(--border);padding:16px 13px;
+  overflow-y:auto;display:flex;flex-direction:column;gap:13px;
+}
+.content{flex:1;padding:18px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+
+/* ── FILTERS ── */
+.fg{display:flex;flex-direction:column;gap:5px}
+.fl{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;
+  letter-spacing:1px;text-transform:uppercase;color:var(--muted);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.fl button{background:none;border:none;cursor:pointer;color:var(--accent);font-size:10px;font-family:'IBM Plex Mono',monospace;padding:0}
+.fl button:hover{text-decoration:underline}
+select,input[type=text]{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);border-radius:6px;padding:7px 9px;
+  font-family:'Barlow',sans-serif;font-size:12px;outline:none;transition:border-color .2s;
+}
+select:focus,input[type=text]:focus{border-color:var(--accent)}
+select[multiple]{height:90px}
+.si{position:relative}
+.si input{padding-left:28px}
+.si-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
+.ctog{display:flex;gap:4px}
+.cbtn{flex:1;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-family:'Barlow',sans-serif;font-size:11px;font-weight:600;transition:all .2s}
+.cbtn.a-all{background:#eef2ff;border-color:var(--accent2);color:var(--accent2)}
+.cbtn.a-si{background:#edf7f1;border-color:var(--green);color:var(--green)}
+.cbtn.a-no{background:#fdf0ec;border-color:var(--accent);color:var(--accent)}
+.reset-btn{width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;transition:all .2s}
+.reset-btn:hover{border-color:var(--accent);color:var(--accent)}
+.sel-search{font-size:11px;padding:5px 8px;height:auto;margin-bottom:2px}
+.divider{height:1px;background:var(--border)}
+
+/* ── STATS ── */
+.stats-layout{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;grid-template-rows:auto auto;gap:10px}
+.sc-big{grid-column:span 2;min-height:130px;display:flex;flex-direction:column;justify-content:space-between}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;box-shadow:var(--shadow)}
+.sc .slabel{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:2px}
+.sc .sval{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px;line-height:1}
+.sc .ssub{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+.sc.ag .sval{color:var(--green)}
+.sc.ab .sval{color:var(--accent2)}
+.sc.aw .sval{color:var(--accent)}
+#winner-card:hover{box-shadow:0 4px 16px rgba(200,66,26,.2);border-color:var(--accent)}
+#sincotiz-card:hover{box-shadow:0 4px 16px rgba(200,66,26,.2);border-color:var(--accent)}
+#winner-card.card-active,#sincotiz-card.card-active{background:#c8421a;border-color:#c8421a;box-shadow:0 4px 20px rgba(200,66,26,.4)}
+#winner-card.card-active *,#sincotiz-card.card-active *{color:#fff !important}
+#winner-card.card-active .card-inactive-hint,#sincotiz-card.card-active .card-inactive-hint{display:none}
+.card-active-hint{display:none;font-size:9px;color:var(--accent);font-family:'IBM Plex Mono',monospace;float:right}
+.card-active .card-active-hint{display:inline}
+.card-inactive-hint{font-size:9px;color:var(--muted2);font-family:'IBM Plex Mono',monospace;float:right}
+.card-active .card-inactive-hint{display:none}
+
+/* ── LUNES STATS ── */
+.lunes-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.lunes-sc{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--accent2);border-radius:10px;padding:14px 16px;box-shadow:var(--shadow)}
+.lunes-sc .slabel{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:6px}
+.lunes-sc .sval{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:1px;color:var(--accent2);line-height:1}
+.lunes-sc .ssub{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:4px}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tab-btn{padding:9px 18px;background:none;border:none;color:var(--muted);font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;margin-bottom:-2px;white-space:nowrap}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-btn:hover:not(.active){color:var(--text)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ── TABLE ── */
+.tw{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--shadow)}
+.th{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.th h3{font-size:13px;font-weight:700}
+.tc{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);background:var(--surface2);padding:3px 9px;border-radius:20px}
+.ts{overflow-x:auto;max-height:450px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;min-width:700px}
+thead th{position:sticky;top:0;z-index:2;background:var(--surface2);padding:9px 11px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);white-space:nowrap;cursor:pointer;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid var(--border);user-select:none}
+thead th:hover{color:var(--accent)}
+thead th.sa::after{content:' ↑';color:var(--accent)}
+thead th.sd::after{content:' ↓';color:var(--accent)}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--surface2)}
+td{padding:9px 11px;font-size:12px;vertical-align:middle}
+td.num{font-family:'IBM Plex Mono',monospace;text-align:right;font-size:11px}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:.3px}
+.bsi{background:#edf7f1;color:var(--green)}
+.bno{background:#fdf0ec;color:var(--accent)}
+.bpv{background:var(--tag-bg);color:var(--accent2);font-size:10px}
+.pmin{color:var(--green);font-weight:700;font-family:'IBM Plex Mono',monospace;font-size:11px}
+.trunc{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.det-min td{background:#edf7f1 !important}
+.det-min td.num{color:var(--green);font-weight:700}
+.det-min .badge.bpv{background:#d4efdf;color:var(--green)}
+.det-max td{background:#fdf0ec !important}
+.det-max td.num{color:var(--accent);font-weight:700}
+.det-max .badge.bpv{background:#fad9ce;color:var(--accent)}
+
+/* ── PAGINATION ── */
+.pg{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--surface2)}
+.pgi{color:var(--muted)}
+.pgb{display:flex;gap:3px}
+.pb{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:4px 9px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:11px;transition:all .15s}
+.pb:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.pb:disabled{opacity:.35;cursor:default}
+.pb.act{background:var(--accent);border-color:var(--accent);color:#fff}
+.empty{padding:36px;text-align:center;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:12px}
+
+/* ── ANALYTICS ── */
+.cs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;box-shadow:var(--shadow)}
+.cc h4{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'IBM Plex Mono',monospace;margin-bottom:12px}
+.bc{display:flex;flex-direction:column;gap:6px}
+.br{display:flex;align-items:center;gap:8px}
+.bn{width:140px;min-width:140px;color:var(--muted);font-family:'IBM Plex Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+.bt{flex:1;background:var(--surface2);border-radius:3px;height:6px;overflow:hidden}
+.bf{height:100%;border-radius:3px;background:var(--accent2)}
+.bv{width:48px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)}
+
+/* ── MODALS ── */
+.dov{display:none;position:fixed;inset:0;z-index:200;background:rgba(26,24,20,.6);backdrop-filter:blur(3px)}
+.dov.open{display:flex;align-items:center;justify-content:center}
+.dp{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:700px;max-width:95vw;max-height:85vh;overflow-y:auto;padding:26px;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.dp-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.dt{font-size:15px;font-weight:700;max-width:560px;line-height:1.4}
+.di{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:16px}
+.dm{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;background:var(--surface2);border-radius:8px;padding:12px;border:1px solid var(--border)}
+.dmi .dl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Mono',monospace;margin-bottom:2px}
+.dmi .dv{font-size:13px;font-weight:600}
+.dc{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:5px 12px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:12px;transition:all .2s;white-space:nowrap}
+.dc:hover{border-color:var(--accent);color:var(--accent)}
+.ot{width:100%;border-collapse:collapse}
+.ot th{text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Mono',monospace;padding:7px 9px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.ot td{padding:8px 9px;font-size:12px;border-bottom:1px solid var(--border)}
+.ot tr:last-child td{border-bottom:none}
+.ot tr.im{background:#edf7f1}
+.ot td.num{font-family:'IBM Plex Mono',monospace;text-align:right;font-size:11px}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+@media(max-width:900px){
+  .stats-layout{grid-template-columns:1fr 1fr}
+  .sc-big{grid-column:span 2;min-height:110px}
+  .cs{grid-template-columns:1fr}
+  .lunes-stats{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:640px){
+  header{padding:0 12px;height:48px}
+  .hlogo{font-size:16px}
+  .hmeta .hcount{font-size:11px}
+  .hamburger{display:flex}
+  .sidebar{position:fixed;top:48px;left:0;bottom:0;z-index:150;width:275px;min-width:0;transform:translateX(-100%);transition:transform .25s ease;box-shadow:4px 0 20px rgba(0,0,0,.12)}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay{display:block}
+  .main{flex-direction:column}
+  .content{padding:12px}
+  .stats-layout{grid-template-columns:1fr 1fr}
+  .sc-big{grid-column:span 2;min-height:100px}
+  .sc-big .sval{font-size:22px !important}
+  .home-cards{flex-direction:column;gap:12px}
+  .home-card{width:300px}
+  .home-title{font-size:44px}
+  .cs{grid-template-columns:1fr}
+  .hub-modules{grid-template-columns:1fr}
+  .dov.open{align-items:flex-end}
+  .dp{width:100%;max-width:100%;border-radius:14px 14px 0 0;padding:20px 16px}
+}
+
+/* ── HISTORICO ── */
+#historicoScreen{position:absolute;inset:0;z-index:460;background:var(--bg);display:none;flex-direction:column;}
+.hist-topbar{height:52px;padding:0 24px;background:var(--text);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.hist-logo{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#fff}
+.hist-logo span{color:#10b981}
+.hist-back{font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(255,255,255,.4);background:none;border:none;cursor:pointer;}
+.hist-back:hover{color:rgba(255,255,255,.8)}
+.hist-body{flex:1;display:flex;overflow:hidden}
+.hist-sidebar{width:255px;min-width:255px;background:var(--surface);border-right:1px solid var(--border);padding:16px 13px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;}
+.hist-content{flex:1;padding:20px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;}
+.hist-file{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;}
+.hf-name{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px;}
+.hf-del{background:none;border:none;color:var(--muted2);cursor:pointer;font-size:15px;padding:0 2px;line-height:1;}
+.hf-del:hover{color:var(--accent)}
+.hist-add{display:flex;align-items:center;justify-content:center;gap:6px;border:2px dashed var(--border);border-radius:8px;padding:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);transition:all .2s;width:100%;background:none;cursor:pointer;}
+.hist-add:hover{border-color:#10b981;color:#10b981}
+.hist-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 9px;border-radius:20px;border:1px solid var(--border);cursor:pointer;background:var(--surface2);color:var(--muted);transition:all .15s;}
+.hist-chip.on{background:#10b981;border-color:#10b981;color:#fff;}
+.hist-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--muted2);}
+.hub-module.mod-historico{--module-color:#10b981}
+.hub-module.mod-historico:hover{border-color:rgba(16,185,129,.35)}
+.hub-module.mod-historico .hm-tag{background:rgba(16,185,129,.18);color:#6ee7b7;border-color:rgba(16,185,129,.3)}
+
+.fecha-check-label{display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text);cursor:pointer;padding:2px 0;}
+.fecha-check-label input[type=checkbox]{accent-color:var(--accent2);width:13px;height:13px;cursor:pointer;}
+.fecha-check-label:hover{color:var(--accent2)}
+
+/* ── DROGUERIA ── */
+#drogueriaScreen{position:absolute;inset:0;z-index:460;background:var(--bg);display:none;flex-direction:column;}
+.drog-topbar{height:52px;padding:0 24px;background:var(--text);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.drog-logo{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#fff}
+.drog-logo span{color:var(--accent)}
+.drog-back{font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(255,255,255,.4);background:none;border:none;cursor:pointer;}
+.drog-back:hover{color:rgba(255,255,255,.8)}
+.drog-body{flex:1;display:flex;overflow:hidden}
+.drog-sidebar{width:220px;min-width:220px;background:var(--surface);border-right:1px solid var(--border);padding:16px 13px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;}
+.drog-content{flex:1;padding:20px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;}
+.drog-upload-btn{display:flex;align-items:center;justify-content:center;gap:6px;border:2px dashed var(--border);border-radius:8px;padding:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);transition:all .2s;width:100%;background:none;cursor:pointer;}
+.drog-upload-btn:hover{border-color:var(--accent);color:var(--accent)}
+.hub-module.mod-drogueria{--module-color:#e85d26}
+.hub-module.mod-drogueria:hover{border-color:rgba(232,93,38,.35)}
+.hub-module.mod-drogueria .hm-tag{background:rgba(232,93,38,.18);color:#fba97a;border-color:rgba(232,93,38,.3)}
+
+/* ── SMART DRUG FILTER ── */
+.drug-search-wrap{position:relative;width:100%}
+.drug-search-input{width:100%;box-sizing:border-box;font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);outline:none}
+.drug-search-input:focus{border-color:var(--accent2)}
+.drug-dropdown{position:absolute;top:100%;left:0;right:0;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:0 0 6px 6px;max-height:160px;overflow-y:auto;display:none;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.drug-dropdown.open{display:block}
+.drug-option{padding:6px 10px;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;color:var(--text)}
+.drug-option:hover,.drug-option.active{background:var(--accent2);color:#fff}
+.drug-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.drug-chip{display:flex;align-items:center;gap:4px;background:var(--accent2);color:#fff;border-radius:20px;padding:2px 8px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600}
+.drug-chip button{background:none;border:none;color:#fff;cursor:pointer;font-size:12px;padding:0;line-height:1;opacity:.8}
+.drug-chip button:hover{opacity:1}
+
+@media print {
+  #homeScreen, #hubScreen, #loadScreen, #filePicker, #drogueriaScreen, .sidebar, .hamburger, .header-actions { display:none !important; }
+  #mainHeader { display:flex !important; position:static !important; }
+  #mainApp { display:flex !important; position:static !important; height:auto !important; overflow:visible !important; }
+  .tab-panel { display:block !important; page-break-inside:avoid; }
+  .tab-panel:not(.active) { display:block !important; }
+  .tabs { display:none !important; }
+  .tw { page-break-inside:avoid; margin-bottom:16px; }
+  body { background:#fff !important; }
+  * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+}
+</style>
+</head>
+<body>
+<div id="appRoot" style="position:relative;min-height:100vh;overflow-x:hidden;">
+
+<!-- ══ LOGIN ══ -->
+<div id="homeScreen">
+  <div class="home-title">Glance<span>Bit</span></div>
+  <div class="home-sub">COMPULSAS CON OFERTAS</div>
+  <form id="loginForm" onsubmit="doLogin(event)" style="display:flex;flex-direction:column;gap:12px;width:280px">
+    <input id="loginUser" type="email" autocomplete="username" placeholder="Usuario" required
+      style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:11px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;outline:none">
+    <input id="loginPass" type="password" autocomplete="current-password" placeholder="Contraseña" required
+      style="font-family:'IBM Plex Mono',monospace;font-size:13px;padding:11px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;outline:none">
+    <button id="loginBtn" type="submit" class="home-enter" style="margin-top:4px">INGRESAR →</button>
+    <div id="loginError" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#ff8a70;text-align:center;min-height:14px"></div>
+  </form>
+</div>
+
+<!-- ══ HUB ══ -->
+<div id="hubScreen">
+  <div class="hub-topbar">
+    <div class="hub-logo">Glance<span>Bit</span></div>
+    <button class="hub-back" onclick="goHome()">← salir</button>
+  </div>
+  <div class="hub-body">
+    <div class="hub-greeting">Seleccioná un módulo para continuar</div>
+    <div class="hub-modules">
+
+      <div class="hub-module mod-pre" onclick="startFlow('lunes')">
+        <div class="hm-icon">📋</div>
+        <div class="hm-org">DINADIC</div>
+        <div class="hm-title">Compulsas</div>
+        <div class="hm-desc">Listado de ítems publicados para cotizar. Sin precios aún.</div>
+        <div class="hm-tag">Pre-cotización · Lunes</div>
+      </div>
+
+      <div class="hub-module mod-result" onclick="startFlow('jueves')">
+        <div class="hm-icon">📊</div>
+        <div class="hm-org">DINADIC</div>
+        <div class="hm-title">Compulsas con ofertas</div>
+        <div class="hm-desc">Cotizaciones recibidas, ganadores y análisis de precios.</div>
+        <div class="hm-tag">Resultado completo · Jueves</div>
+      </div>
+      <div class="hub-module mod-drogueria" onclick="openDrogueria()">
+        <div class="hm-icon">&#128138;</div>
+        <div class="hm-org">DROGUERÍA</div>
+        <div class="hm-title">Mi cotización</div>
+        <div class="hm-desc">Cargá tu archivo de compulsa, completá precios y exportá. Con historial de ganadores anteriores.</div>
+        <div class="hm-tag">Cotización · Exportar Excel</div>
+      </div>
+
+      <div class="hub-module mod-historico" onclick="openHistorico()" style="display:none">
+        <div class="hm-icon">&#128200;</div>
+        <div class="hm-org">DINADIC</div>
+        <div class="hm-title">Hist&oacute;rico</div>
+        <div class="hm-desc">Consolidado multi-fecha. Rankings acumulados y evoluci&oacute;n de precios.</div>
+        <div class="hm-tag">Multi-archivo &middot; An&aacute;lisis hist&oacute;rico</div>
+      </div>
+
+
+      <div class="hub-module mod-judicial disabled" style="display:none">
+        <div class="hm-icon">⚖️</div>
+        <div class="hm-org">DINADIC</div>
+        <div class="hm-title">Manda Judicial</div>
+        <div class="hm-desc">Seguimiento de mandas judiciales de medicamentos.</div>
+        <div class="hm-tag">Próximamente</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══ LOADING ══ -->
+<div id="loadScreen">
+  <h2 id="loadTitle">Cargando…</h2>
+  <p id="loadMsg">Iniciando…</p>
+  <div class="progress-track"><div class="progress-fill" id="progFill"></div></div>
+</div>
+
+<!-- ══ FILE PICKER ══ -->
+<div id="filePicker">
+  <h2 id="fpTitle">Seleccionar archivo</h2>
+  <div class="fp-type" id="fpType"></div>
+  <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+    <div class="dz-icon">📂</div>
+    <div class="dz-text">Hacer clic para seleccionar</div>
+    <div class="dz-sub">o arrastrar el archivo aquí</div>
+  </div>
+  <input type="file" id="fileInput" accept=".xlsx,.xls">
+  <button class="fp-back" onclick="goHub()">← Volver</button>
+</div>
+
+
+<!-- ══ HISTORICO SCREEN ══ -->
+<div id="historicoScreen">
+  <div class="hist-topbar">
+    <div class="hist-logo">Glance<span>Bit</span> &middot; Hist&oacute;rico</div>
+    <button class="hist-back" onclick="closeHistorico()">&#8592; Volver</button>
+  </div>
+  <div class="hist-body">
+    <div class="hist-sidebar">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)">Compulsas cargadas</div>
+      <div id="hist-file-list"></div>
+      <label for="histFileInput" class="hist-add">+ Agregar compulsa</label>
+      <input type="file" id="histFileInput" accept=".xlsx,.xls" multiple style="display:none">
+      <div class="divider"></div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)">Filtrar por archivo</div>
+      <div id="hist-chips" style="display:flex;flex-wrap:wrap;gap:5px;"></div>
+      <button class="reset-btn" onclick="histAllOn()">Seleccionar todos</button>
+    </div>
+    <div class="hist-content" id="hist-content">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--muted2);">
+        <div style="font-size:44px;opacity:.35">&#128200;</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;text-align:center;line-height:1.8">Carg&aacute; una o m&aacute;s compulsas<br>para ver el an&aacute;lisis hist&oacute;rico</div>
+        <label for="histFileInput" style="padding:12px 28px;background:#10b981;color:#fff;border-radius:8px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;">&#128194; Cargar archivos Excel</label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DROGUERIA SCREEN ══ -->
+<div id="drogueriaScreen">
+  <div class="drog-topbar">
+    <div class="drog-logo">Glance<span>Bit</span> &middot; Mi Cotizaci&oacute;n</div>
+    <button class="drog-back" onclick="closeDrogueria()">&#8592; Volver</button>
+  </div>
+  <div class="drog-body">
+    <div class="drog-sidebar">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)">Archivo compulsa</div>
+      <label for="drogFileInput" class="drog-upload-btn">&#128194; Cargar Hoja1</label>
+      <input type="file" id="drogFileInput" accept=".xlsx,.xls" style="display:none">
+      <div class="divider"></div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)">Hist&oacute;rico (opcional)</div>
+      <label for="drogHistInput" class="drog-upload-btn">&#128200; Cargar unificado</label>
+      <input type="file" id="drogHistInput" accept=".xlsx,.xls" style="display:none">
+      <div id="drog-hist-status" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)"></div>
+    </div>
+    <div class="drog-content" id="drog-content">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--muted2)">
+        <div style="font-size:44px;opacity:.35">&#128138;</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;text-align:center;line-height:1.8">Carg&aacute; el archivo de cotizaci&oacute;n<br>para comenzar</div>
+        <label for="drogFileInput" style="padding:12px 28px;background:var(--accent);color:#fff;border-radius:8px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600">&#128194; Cargar archivo droguer&iacute;a</label>
+      </div>
+    </div>
+    <!-- Hist Modal -->
+  <div id="drog-hist-modal" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(26,24,20,.65);backdrop-filter:blur(3px);align-items:center;justify-content:center">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;width:680px;max-width:95vw;max-height:85vh;overflow-y:auto;padding:26px;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+        <div>
+          <div id="drog-hist-title" style="font-size:15px;font-weight:700;color:var(--text)"></div>
+          <div id="drog-hist-sub" style="font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:3px"></div>
+        </div>
+        <button id="drog-hist-close" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;flex-shrink:0">&#10005; Cerrar</button>
+      </div>
+      <div id="drog-hist-body"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ HEADER (hidden until file loaded) ══ -->
+<header id="mainHeader" style="display:none">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="hamburger" id="hamburgerBtn"><span></span><span></span><span></span></button>
+    <div class="hlogo">Glance<span id="hlogoSub">Bit</span></div>
+    <span class="hmode-badge" id="hmodeBadge"></span>
+  </div>
+  <div class="hmeta">
+    <span class="hcount" id="headerCount">—</span>
+    <button class="home-btn" onclick="logout()">⏻ Cerrar sesión</button> <button class="home-btn" onclick="exportPDF()" style="background:var(--accent);color:#fff;border-color:var(--accent)">&#128196; Exportar PDF</button>
+  </div>
+</header>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ══ MAIN APP (hidden until file loaded) ══ -->
+<div class="main" id="mainApp" style="display:none">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="mainSidebar">
+    <button class="reset-btn" onclick="resetFilters()" style="margin-bottom:2px">↺ Limpiar filtros</button>
+    <div class="divider"></div>
+    <div class="fg">
+      <div class="fl">Búsqueda</div>
+      <div class="si"><span class="si-icon">⌕</span>
+        <input type="text" id="searchBox" placeholder="Medicación, droga, ID…">
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="fg">
+      <div class="fl">Droga <button onclick="clearDrugs()">Limpiar</button></div>
+      <div class="drug-search-wrap">
+        <input type="text" class="drug-search-input" id="drugSearchInput" placeholder="Buscar droga…" autocomplete="off">
+        <div class="drug-dropdown" id="drugDropdown"></div>
+      </div>
+      <div class="drug-chips" id="drugChips"></div>
+    </div>
+    <div class="fg" id="fechaFilterGroup" style="display:none">
+      <div class="fl">Fecha <span style="display:flex;gap:6px"><button onclick="clearFechas()">Todas</button><button onclick="clearFechas(false)">Ninguna</button></span></div>
+      <div id="fechaCheckboxes" style="display:flex;flex-direction:column;gap:4px;max-height:140px;overflow-y:auto;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;"></div>
+    </div>
+    <div class="fg">
+      <div class="fl">Residencia <button onclick="clearSel('residenciaFilter')">Limpiar</button></div>
+      <input type="text" class="sel-search" placeholder="Buscar residencia…" oninput="filterSelect('residenciaFilter',this.value)">
+      <select id="residenciaFilter" multiple></select>
+    </div>
+    <!-- Proveedor filter only shown for Jueves mode -->
+    <div class="fg" id="provFilterGroup" style="display:none">
+      <div class="fl">Proveedor <button onclick="clearSel('provFilter')">Limpiar</button></div>
+      <input type="text" class="sel-search" placeholder="Buscar proveedor…" oninput="filterSelect('provFilter',this.value)">
+      <select id="provFilter" multiple></select>
+    </div>
+    <!-- Cotiza toggle only for Jueves -->
+    <div class="fg" id="cotizaGroup" style="display:none">
+      <div class="fl">Cotización</div>
+      <div class="ctog">
+        <button class="cbtn a-all" id="c-all" onclick="setCotiza('all')">Todos</button>
+        <button class="cbtn" id="c-si" onclick="setCotiza('SI')">SI</button>
+        <button class="cbtn" id="c-no" onclick="setCotiza('NO')">NO</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CONTENT -->
+  <div class="content" id="mainContent">
+    <!-- Populated dynamically per mode -->
+  </div>
+</div>
+
+<!-- ══ MODALS ══ -->
+<div class="dov" id="dov" onclick="if(event.target===this)closeDet()">
+  <div class="dp">
+    <div class="dp-header">
+      <div class="dt" id="dl-title"></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="printDet()" style="background:var(--accent);border:none;color:#fff;border-radius:6px;padding:5px 14px;cursor:pointer;font-size:12px;font-family:'IBM Plex Mono',monospace;font-weight:600">&#128196; PDF</button>
+        <button class="dc" onclick="closeDet()">✕ Cerrar</button>
+      </div>
+    </div>
+    <div class="di" id="dl-id"></div>
+    <div class="dm" id="dl-meta"></div>
+    <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'IBM Plex Mono',monospace;margin-bottom:8px">Cotizaciones recibidas</div>
+    <table class="ot"><thead><tr><th>Proveedor</th><th>Cotiza</th><th style="text-align:right">P. Unitario</th><th style="text-align:right">P. Total</th><th style="text-align:right">Cant.</th><th>Marca</th></tr></thead>
+    <tbody id="dl-offers"></tbody></table>
+  </div>
+</div>
+
+<div class="dov" id="drogaOv" onclick="if(event.target===this)closeDrogaDet()">
+  <div class="dp" style="width:780px">
+    <div class="dp-header">
+      <div class="dt" id="droga-title"></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="printDrogaDet()" style="background:var(--accent);border:none;color:#fff;border-radius:6px;padding:5px 14px;cursor:pointer;font-size:12px;font-family:'IBM Plex Mono',monospace;font-weight:600">&#128196; PDF</button>
+        <button class="dc" onclick="closeDrogaDet()">✕ Cerrar</button>
+      </div>
+    </div>
+    <div class="di" id="droga-sub"></div>
+    <table class="ot"><thead><tr><th>Fecha</th><th>Medicación</th><th>Residencia</th><th style="text-align:right">Cant.</th><th style="text-align:right">Precio mín.</th><th style="text-align:right">Monto total</th><th>Ganador 🏆</th></tr></thead>
+    <tbody id="droga-body"></tbody></table>
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)" id="droga-footer"></div>
+    </div>
+  </div>
+</div>
+
+<div class="dov" id="provOv" onclick="if(event.target===this)closeProvDet()">
+  <div class="dp" style="width:820px">
+    <div class="dp-header">
+      <div class="dt" id="prov-title"></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="printProvDet()" style="background:var(--accent);border:none;color:#fff;border-radius:6px;padding:5px 14px;cursor:pointer;font-size:12px;font-family:'IBM Plex Mono',monospace;font-weight:600">&#128196; PDF</button>
+        <button class="dc" onclick="closeProvDet()">✕ Cerrar</button>
+      </div>
+    </div>
+    <div class="di" id="prov-sub"></div>
+    <table class="ot"><thead><tr><th>Fecha</th><th>Droga</th><th>Medicación</th><th>Residencia</th><th style="text-align:right">Cant.</th><th style="text-align:right">Precio</th><th style="text-align:right">Monto total</th></tr></thead>
+    <tbody id="prov-body"></tbody></table>
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)" id="prov-footer"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ STATE ══
+let MODE = null; // 'lunes' | 'jueves'
+let RESUMEN = [], DETALLE = [];
+let state = {
+  search:'', drugs:[], formas:[], fechas:[], residencias:[], provs:[], cotiza:'all',
+  resPage:1, detPage:1, ps:25,
+  rsCol:'FECHA', rsDir:'desc', dsCol:'FECHA', dsDir:'desc',
+  _sinCotizOnly:false, _winnerOnly:null,
+};
+const _allOpts = {};
+let _lastWinner = null;
+let _rankSort = {col:'total', dir:'desc'};
+let _prodSort = {col:'total', dir:'desc'};
+
+// Columnas fijas del RESUMEN que NO son proveedores. Cualquier otra columna
+// del Excel se interpreta como una columna de precio por proveedor.
+const META_COLS = new Set(['FECHA','ORDEN','ID','MEDICACION','RESIDENCIA','DROGA','FORMA','POTENCIA','CANTIDAD_LICITADA','PRECIO_MIN','CANT_PROVEEDORES','TOTAL_RENGLON']);
+function getVendorCols(rows){
+  return rows && rows.length ? Object.keys(rows[0]).filter(k=>!META_COLS.has(k)) : [];
+}
+
+// ══ SUPABASE — LOGIN Y CARGA DE DATOS ══
+// La anon key es pública a propósito (está diseñada para vivir en el navegador);
+// lo que protege los datos es la Row Level Security del lado del servidor,
+// no que esta clave esté oculta.
+const SUPABASE_URL = 'https://tfdbxqktnkskygaztbaw.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_RPA-KPEzFa3HjAxWgUM-cQ_nDR4KH5w';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function doLogin(ev){
+  if (ev) ev.preventDefault();
+  const email = document.getElementById('loginUser').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const btn   = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  btn.disabled = true; btn.textContent = 'Ingresando…';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  btn.disabled = false; btn.textContent = 'INGRESAR →';
+  if (error) { errEl.textContent = 'Usuario o contraseña incorrectos'; return; }
+  document.getElementById('homeScreen').style.display = 'none';
+  await loadFromSupabase();
+}
+
+async function logout(){
+  await sb.auth.signOut();
+  RESUMEN = []; DETALLE = []; MODE = null;
+  document.getElementById('mainHeader').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('homeScreen').style.display = 'flex';
+}
+
+// Supabase/PostgREST devuelve como máximo 1000 filas por consulta aunque no
+// se pida un límite — hay que pedir de a páginas. Se pide el total con la
+// primera página y el resto de las páginas se piden todas en paralelo
+// (mucho más rápido que una por una).
+async function fetchAllRows(table, onProgress){
+  const pageSize = 1000;
+  const first = await sb.from(table).select('*', {count:'exact'}).range(0, pageSize - 1);
+  if (first.error) throw first.error;
+  let all = first.data;
+  const total = first.count ?? all.length;
+  if (onProgress) onProgress(all.length, total);
+  if (all.length < total){
+    const pages = [];
+    for (let from = pageSize; from < total; from += pageSize){
+      pages.push(sb.from(table).select('*').range(from, from + pageSize - 1));
+    }
+    const results = await Promise.all(pages);
+    for (const r of results){
+      if (r.error) throw r.error;
+      all = all.concat(r.data);
+    }
+    if (onProgress) onProgress(all.length, total);
+  }
+  return all;
+}
+
+async function loadFromSupabase(){
+  document.getElementById('loadScreen').style.display = 'flex';
+  document.getElementById('loadTitle').textContent = 'Cargando compulsas con ofertas…';
+  setProgress(10, 'Conectando…');
+  let resumenData, detalleData;
+  try {
+    resumenData = await fetchAllRows('resumen', n => setProgress(10 + Math.min(n/50, 30), 'Descargando resumen… ('+n+')'));
+    detalleData = await fetchAllRows('detalle', n => setProgress(40 + Math.min(n/3000, 25), 'Descargando cotizaciones… ('+n+')'));
+  } catch (error) {
+    document.getElementById('loadScreen').style.display = 'none';
+    alert('Error cargando datos: ' + error.message);
+    document.getElementById('homeScreen').style.display = 'flex';
+    return;
+  }
+  const resResp = { data: resumenData }, detResp = { data: detalleData };
+  setProgress(65, 'Procesando…');
+  RESUMEN = resResp.data.map(row => {
+    const base = {
+      FECHA: row.fecha ? new Date(row.fecha + 'T00:00:00') : null,
+      ORDEN: row.orden,
+      ID: row.item_id,
+      MEDICACION: row.medicacion,
+      RESIDENCIA: row.residencia ? String(row.residencia).toUpperCase().trim() : null,
+      DROGA: row.droga,
+      FORMA: row.forma,
+      POTENCIA: row.potencia,
+      CANTIDAD_LICITADA: row.cantidad_licitada,
+      PRECIO_MIN: row.precio_min,
+      CANT_PROVEEDORES: row.cant_proveedores,
+      TOTAL_RENGLON: row.total_renglon,
+    };
+    return Object.assign(base, row.vendor_prices || {});
+  });
+  DETALLE = detResp.data.map(row => ({
+    FECHA: row.fecha ? new Date(row.fecha + 'T00:00:00') : null,
+    PROVEEDOR: row.proveedor,
+    ORDEN: row.orden,
+    ID: row.item_id,
+    EXPEDIENTE: row.expediente,
+    CANTIDAD_LICITADA: row.cantidad_licitada,
+    MEDICACION: row.medicacion,
+    RESIDENCIA: row.residencia ? String(row.residencia).toUpperCase().trim() : null,
+    COTIZA: row.cotiza ? String(row.cotiza).toUpperCase().trim() : 'NO',
+    PRECIO_UNITARIO: row.precio_unitario,
+    PRECIO_TOTAL: row.precio_total,
+    CANTIDAD_OFERTADA: row.cantidad_ofertada,
+    MARCA_PRESENTACION: row.marca_presentacion,
+  }));
+  RESUMEN.forEach((r,i)=>{ r._idx = i; });
+  MODE = 'jueves';
+  setProgress(90, 'Construyendo interfaz…');
+  setTimeout(() => {
+    buildUI();
+    document.getElementById('loadScreen').style.display = 'none';
+    document.getElementById('mainHeader').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'flex';
+  }, 200);
+}
+
+// Si ya había una sesión activa (recargaste la página), entrar directo sin pedir login de nuevo
+sb.auth.getSession().then(({data}) => {
+  if (data && data.session) {
+    document.getElementById('homeScreen').style.display = 'none';
+    loadFromSupabase();
+  }
+});
+
+// ══ HOME / FLOW ══
+function goHome() {
+  document.getElementById('homeScreen').style.display='flex';
+  document.getElementById('hubScreen').style.display='none';
+  document.getElementById('mainHeader').style.display='none';
+  document.getElementById('mainApp').style.display='none';
+  document.getElementById('loadScreen').style.display='none';
+  document.getElementById('filePicker').style.display='none';
+  RESUMEN=[]; DETALLE=[]; MODE=null;
+}
+
+function goHub() {
+  document.getElementById('homeScreen').style.display='none';
+  document.getElementById('hubScreen').style.display='flex';
+}
+
+function startFlow(mode) {
+  MODE = mode;
+  document.getElementById('hubScreen').style.display='none';
+  document.getElementById('fpTitle').textContent = mode==='lunes' ? 'Compulsas DINADIC' : 'Compulsas con ofertas';
+  document.getElementById('fpType').textContent = mode==='lunes'
+    ? 'Pre-cotización · Sin precios'
+    : 'Resultado completo · Con cotizaciones y ganadores';
+  document.getElementById('filePicker').style.display='flex';
+}
+
+// ══ FILE LOADING ══
+function setProgress(pct, msg) {
+  document.getElementById('progFill').style.width=pct+'%';
+  document.getElementById('loadMsg').textContent=msg;
+}
+
+function loadFile(file) {
+  document.getElementById('filePicker').style.display='none';
+  document.getElementById('loadScreen').style.display='flex';
+  document.getElementById('loadTitle').textContent = MODE==='lunes' ? 'Cargando Lunes…' : 'Cargando Jueves…';
+  setProgress(10,'Leyendo archivo…');
+  const reader = new FileReader();
+  reader.onload = ev => {
+    setProgress(40,'Procesando Excel…');
+    const wb = XLSX.read(ev.target.result, {type:'array', cellDates:true});
+    parseWorkbook(wb);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseWorkbook(wb) {
+  setProgress(60,'Detectando formato…');
+
+  const wsLlamado = wb.Sheets['LLAMADO'] || wb.Sheets['Hoja1'];
+  const wsRes     = wb.Sheets['RESUMEN'];
+  const wsDet     = wb.Sheets['DETALLE'];
+
+  // ── NEW FORMAT: single sheet LLAMADO ──
+  if (wsLlamado) {
+    const raw = XLSX.utils.sheet_to_json(wsLlamado, {defval:null});
+    setProgress(75,'Normalizando datos…');
+
+    function normalizeRow(r) {
+        const cantLicitada = r['CANTIDAD\r\nLICITADA'] ?? r['CANTIDAD\nLICITADA'] ?? r['CANTIDAD LICITADA'] ?? r['CANTIDAD'] ?? null;
+        const cantOferta   = r['CANTIDAD\r\nOFERTA']   ?? r['CANTIDAD\nOFERTA']   ?? r['CANTIDAD OFERTA']   ?? r['CANTIDAD oferta'] ?? null;
+        const forma        = r['FORMA\r\nFARMACÉUTICA'] ?? r['FORMA\r\nFARMACEUTICA'] ?? r['FORMA\nFARMACÉUTICA'] ?? r['FORMA\nFARMACEUTICA'] ?? r['FORMA'] ?? null;
+        // DROGA: use explicit field or extract from MEDICACION (e.g. "COMPR. de METOTREXATO 2.5 MG" -> "METOTREXATO")
+        var droga = r['DROGA'] ?? null;
+        if (!droga && r['MEDICACION']) {
+          var m = String(r['MEDICACION']).match(/(?:de|DE)\s+([A-ZÁÉÍÓÚÜÑ][A-Za-záéíóúüñ\s\-]+?)(?:\s+\d|\s+[xX]\s|\s+para|\s+c\/|$)/);
+          droga = m ? m[1].trim().toUpperCase() : String(r['MEDICACION']).substring(0,30).toUpperCase();
+        }
+        // PRECIO UNITARIO puede ser N/C — solo usar si es número real
+        var precio = r['PRECIO_MIN'] ?? r['PRECIO UNITARIO '] ?? r['PRECIO UNITARIO'] ?? null;
+        if (precio !== null && (precio === 'N/C' || precio === '' || isNaN(Number(precio)))) precio = null;
+        return {
+          ORDEN:             r['ORDEN']       ?? null,
+          ID:                r['ID']          ?? null,
+          ITEM:              r['ITEM']        ?? null,
+          SUBS:              r['SUBS']        ?? null,
+          EXPEDIENTE:        r['EXPEDIENTE']  ?? null,
+          CANTIDAD_LICITADA: cantLicitada != null ? Number(cantLicitada)||null : null,
+          MEDICACION:        r['MEDICACION']  ?? null,
+          RESIDENCIA:        r['RESIDENCIA']  ? String(r['RESIDENCIA']).toUpperCase().trim() : null,
+          CANTIDAD_OFERTA:   cantOferta != null ? Number(cantOferta)||null : null,
+          DROGA:             droga,
+          FORMA:             forma,
+          POTENCIA:          r['POTENCIA']    ?? null,
+          PRECIO_MIN:        precio != null ? Number(precio)||null : null,
+          CANT_PROVEEDORES:  r['CANT_PROVEEDORES'] ?? null,
+        };
+    }
+
+    RESUMEN = raw.filter(r => r['ORDEN'] != null || r['ID'] != null).map(normalizeRow);
+
+    // Detect mode: jueves only if has REAL numeric prices (not just N/C strings)
+    const hasPrecios = RESUMEN.some(r => r.PRECIO_MIN != null && !isNaN(r.PRECIO_MIN));
+    MODE = hasPrecios ? 'jueves' : 'lunes';
+    DETALLE = [];
+
+  // ── OLD FORMAT: RESUMEN + DETALLE sheets ──
+  } else if (wsRes) {
+    const rawRes = XLSX.utils.sheet_to_json(wsRes, {defval:null});
+    setProgress(75,'Normalizando datos…');
+
+    RESUMEN = rawRes.map(r => ({
+      ...r,
+      RESIDENCIA:       r.RESIDENCIA ? String(r.RESIDENCIA).toUpperCase().trim() : null,
+      PRECIO_MIN:       r.PRECIO_MIN != null ? Number(r.PRECIO_MIN)||null : null,
+      CANTIDAD_LICITADA: r.CANTIDAD_LICITADA != null ? Number(r.CANTIDAD_LICITADA)||null : null,
+    }));
+
+    const sampleCols = getVendorCols(rawRes);
+    const isJueves = wsDet && sampleCols.length > 0;
+    MODE = isJueves ? 'jueves' : 'lunes';
+
+    if (isJueves && wsDet) {
+      const rawDet = XLSX.utils.sheet_to_json(wsDet, {defval:null});
+      DETALLE = rawDet.map(d => ({
+        ...d,
+        RESIDENCIA:      d.RESIDENCIA ? String(d.RESIDENCIA).toUpperCase().trim() : null,
+        PRECIO_UNITARIO: d.PRECIO_UNITARIO != null ? Number(d.PRECIO_UNITARIO)||null : null,
+        PRECIO_TOTAL:    d.PRECIO_TOTAL    != null ? Number(d.PRECIO_TOTAL)||null    : null,
+        COTIZA:          d.COTIZA ? String(d.COTIZA).toUpperCase().trim() : 'NO',
+      }));
+    } else {
+      DETALLE = [];
+    }
+
+  } else {
+    alert('Formato no reconocido. Se esperaba hoja LLAMADO o RESUMEN.');
+    goHub(); return;
+  }
+
+  // Índice único por renglón: ORDEN/ID pueden repetirse entre compulsas de
+  // distinta fecha o lote, así que no alcanzan solos para identificar un ítem.
+  RESUMEN.forEach((r,i)=>{ r._idx = i; });
+
+  setProgress(90,'Construyendo interfaz…');
+  setTimeout(() => {
+    buildUI();
+    document.getElementById('loadScreen').style.display='none';
+    document.getElementById('mainHeader').style.display='flex';
+    document.getElementById('mainApp').style.display='flex';
+  }, 200);
+}
+
+// ══ BUILD UI PER MODE ══
+function buildUI() {
+  // Header
+  document.getElementById('hlogoSub').textContent = MODE==='lunes' ? 'Bit · Compulsas' : 'Bit · Ofertas';
+  document.getElementById('hmodeBadge').textContent = MODE==='lunes' ? 'PRE-COTIZACIÓN' : 'RESULTADO';
+  document.getElementById('hmodeBadge').className = 'hmode-badge ' + (MODE==='lunes'?'hmode-lunes':'hmode-jueves');
+
+  // Show/hide sidebar sections
+  document.getElementById('provFilterGroup').style.display = MODE==='jueves'?'':'none';
+  document.getElementById('cotizaGroup').style.display = MODE==='jueves'?'':'none';
+
+  // Build content
+  const content = document.getElementById('mainContent');
+  if (MODE === 'lunes') {
+    content.innerHTML = buildLunesContent();
+  } else {
+    content.innerHTML = buildJuevesContent();
+    // Erogacion is now dynamic via renderStats
+  }
+
+  initFilters();
+  resetFilters();
+  renderRanking(RESUMEN);
+}
+
+// ══ LUNES CONTENT HTML ══
+function buildLunesContent() {
+  return `
+  <div class="lunes-stats">
+    <div class="lunes-sc"><div class="slabel">Renglones</div><div class="sval" id="s-items">—</div><div class="ssub">ítems a cotizar</div></div>
+    <div class="lunes-sc"><div class="slabel">Drogas distintas</div><div class="sval" id="s-drogas">—</div><div class="ssub">en este reporte</div></div>
+    <div class="lunes-sc"><div class="slabel">Residencias</div><div class="sval" id="s-provs">—</div><div class="ssub">jurisdicciones</div></div>
+    <div class="lunes-sc"><div class="slabel">Expedientes</div><div class="sval" id="s-sincotiz">—</div><div class="ssub">casos únicos</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('resumen')">📋 Ítems a cotizar</button>
+    <button class="tab-btn" onclick="showTab('drogas')">💊 Drogas</button>
+    <button class="tab-btn" onclick="showTab('analytics')">📊 Analítica</button>
+  </div>
+  <div class="tab-panel active" id="tab-resumen">
+    <div class="tw">
+      <div class="th"><h3>Listado de ítems</h3><span class="tc" id="res-count">—</span></div>
+      <div class="ts"><table id="resTable">
+        <thead><tr>
+          <th onclick="srt('res','ORDEN')">Orden</th>
+          <th onclick="srt('res','ID')">ID</th>
+          <th onclick="srt('res','EXPEDIENTE')">Expediente</th>
+          <th onclick="srt('res','MEDICACION')">Medicación</th>
+          <th onclick="srt('res','DROGA')">Droga</th>
+          <th onclick="srt('res','FORMA')">Forma farmacéutica</th>
+          <th onclick="srt('res','POTENCIA')">Potencia</th>
+          <th onclick="srt('res','RESIDENCIA')">Residencia</th>
+          <th onclick="srt('res','CANTIDAD_OFERTA')" style="text-align:center">Cant. ofertada</th>
+        </tr></thead>
+        <tbody id="resBody"></tbody>
+      </table></div>
+      <div class="pg" id="res-pg"></div>
+    </div>
+  </div>
+    <div class="tab-panel" id="tab-drogas">
+    <div class="tw">
+      <div class="th"><h3>Drogas en este llamado</h3><span class="tc" id="drogas-count">—</span></div>
+      <div style="padding:18px"><div id="drogas-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px"></div></div>
+    </div>
+  </div>
+  <div class="tab-panel" id="tab-analytics">
+    <div class="cs">
+      <div class="cc"><h4>Ítems por droga</h4><div class="bc" id="ch-droga"></div></div>
+      <div class="cc"><h4>Ítems por residencia</h4><div class="bc" id="ch-res"></div></div>
+      <div class="cc"><h4>Ítems por forma farmacéutica</h4><div class="bc" id="ch-forma"></div></div>
+      <div class="cc"><h4>Cantidad total por droga (top 15)</h4><div class="bc" id="ch-cant"></div></div>
+    </div>
+  </div>`;
+}
+
+// ══ JUEVES CONTENT HTML ══
+function buildJuevesContent() {
+  return `
+  <div class="stats-layout">
+    <div class="sc sc-big" style="border-top:3px solid var(--accent2)">
+      <div class="slabel">💰 Erogación total DINADIC</div>
+      <div class="sval" id="s-erogacion" style="font-size:42px;letter-spacing:0;color:var(--accent2);line-height:1;margin:8px 0 4px">—</div>
+      <div class="ssub" id="s-erogacion-sub">— renglones</div>
+    </div>
+    <div class="sc sc-big" style="border-top:3px solid var(--accent);cursor:pointer;transition:box-shadow .15s" id="winner-card" onclick="filterByWinner()" title="Clic para filtrar">
+      <div class="slabel">🏆 Mayor ganador <span class="card-active-hint">✕ quitar</span><span class="card-inactive-hint">clic para filtrar</span></div>
+      <div style="font-family:'Barlow',sans-serif;font-size:16px;font-weight:700;color:var(--text);line-height:1.2;margin:8px 0 6px" id="s-winner">—</div>
+      <div style="display:flex;gap:20px;align-items:flex-end">
+        <div><div class="slabel">Total adjudicado</div><div class="sval" id="s-winner-total" style="font-size:34px;letter-spacing:0;color:var(--accent)">—</div></div>
+        <div><div class="slabel">Ítems ganados</div><div class="sval" id="s-winner-items" style="font-size:34px;letter-spacing:0;color:var(--accent)">—</div></div>
+      </div>
+    </div>
+    <div class="sc ab"><div class="slabel">Ítems filtrados</div><div class="sval" id="s-items">—</div><div class="ssub">de ${RESUMEN.length} total</div></div>
+    <div class="sc ag"><div class="slabel">Drogas distintas</div><div class="sval" id="s-drogas">—</div><div class="ssub">en la selección</div></div>
+    <div class="sc ab"><div class="slabel">Proveedores</div><div class="sval" id="s-provs">—</div><div class="ssub" id="s-provs-sub">en la selección</div></div>
+    <div class="sc aw" style="cursor:pointer;transition:box-shadow .15s" id="sincotiz-card" onclick="filterSinCotizar()" title="Clic para filtrar">
+      <div class="slabel">Sin cotizar <span class="card-active-hint">✕ quitar</span><span class="card-inactive-hint">clic</span></div>
+      <div class="sval" id="s-sincotiz">—</div><div class="ssub" id="s-sincotiz-sub">renglones</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('ranking')">🏆 Grandes ganadores</button>
+    <button class="tab-btn" onclick="showTab('productos')">💊 Ranking drogas</button>
+    <button class="tab-btn" onclick="showTab('marcas')">🏷️ Ranking marcas</button>
+    <button class="tab-btn" onclick="showTab('resumen')">Resumen ítems</button>
+    <button class="tab-btn" onclick="showTab('detalle')">Cotizaciones</button>
+    <button class="tab-btn" onclick="showTab('analytics')">Analítica</button>
+  </div>
+  <div class="tab-panel active" id="tab-ranking">
+    <div class="tw">
+      <div class="th"><h3>Ranking de proveedores ganadores</h3><span class="tc" id="ranking-count">—</span></div>
+      <div class="ts"><table id="rankingTable">
+        <thead><tr>
+          <th style="width:40px">#</th>
+          <th onclick="sortRanking('name')">Proveedor</th>
+          <th onclick="sortRanking('total')" style="text-align:right">Total adjudicado</th>
+          <th onclick="sortRanking('items')" style="text-align:right">Ítems ganados</th>
+          <th>Participación</th>
+          <th>—</th>
+        </tr></thead>
+        <tbody id="rankingBody"></tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="tab-panel" id="tab-productos">
+    <div class="tw">
+      <div class="th"><h3>Ranking de drogas por monto total</h3><span class="tc" id="prod-count">—</span>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)" id="sel-count-label"></span>
+          <button onclick="printSelectedDrogas()" id="btn-print-sel" style="display:none;background:var(--accent);border:none;color:#fff;border-radius:5px;padding:4px 12px;cursor:pointer;font-size:11px;font-family:'IBM Plex Mono',monospace;font-weight:600">&#128196; PDF seleccionadas</button>
+        </div>
+      </div>
+      <div style="padding:10px 14px 6px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+        <div style="position:relative;flex:1;max-width:320px">
+          <input type="text" id="prov-search-input" placeholder="Buscar droguería ganadora…" oninput="filterProdByProv(this.value)"
+            style="width:100%;box-sizing:border-box;font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 28px 6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);outline:none">
+          <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--muted);pointer-events:none">🔍</span>
+        </div>
+        <span id="prov-search-label" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent2);font-weight:600"></span>
+        <button id="prov-search-clear" onclick="clearProvSearch()" style="display:none;background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 10px;cursor:pointer;font-size:11px;font-family:'IBM Plex Mono',monospace">Limpiar</button>
+      </div>
+      <div class="ts"><table id="prodTable">
+        <thead><tr>
+          <th style="width:28px;text-align:center"><input type="checkbox" id="chk-all-drogas" title="Seleccionar todas" onchange="toggleAllDrogas(this.checked)" style="cursor:pointer;accent-color:var(--accent2)"></th>
+          <th style="width:40px">#</th>
+          <th onclick="sortProd('droga')">Droga</th>
+          <th onclick="sortProd('total')" style="text-align:right">Monto total</th>
+          <th onclick="sortProd('items')" style="text-align:right">Renglones</th>
+          <th>Participación</th>
+          <th>—</th>
+        </tr></thead>
+        <tbody id="prodBody"></tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="tab-panel" id="tab-marcas">
+    <div class="tw">
+      <div class="th"><h3>Ranking de marcas por monto total</h3><span class="tc" id="marca-count">—</span></div>
+      <div class="ts"><table id="marcaTable">
+        <thead><tr>
+          <th style="width:40px">#</th>
+          <th onclick="sortMarca('marca')">Marca / Presentación</th>
+          <th onclick="sortMarca('total')" style="text-align:right">Monto total</th>
+          <th onclick="sortMarca('items')" style="text-align:right">Renglones</th>
+          <th>Participación</th>
+        </tr></thead>
+        <tbody id="marcaBody"></tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="tab-panel" id="tab-resumen">
+    <div class="tw">
+      <div class="th"><h3>Ítems licitados</h3><span class="tc" id="res-count">—</span></div>
+      <div class="ts"><table id="resTable">
+        <thead><tr>
+          <th onclick="srt('res','ORDEN')" style="width:50px">N°</th>
+          <th onclick="srt('res','FECHA')" style="width:90px">Fecha</th>
+          <th onclick="srt('res','MEDICACION')">Medicación</th>
+          <th onclick="srt('res','DROGA')" style="width:150px">Droga</th>
+          <th onclick="srt('res','FORMA')" style="width:130px">Forma</th>
+          <th onclick="srt('res','RESIDENCIA')" style="width:110px">Residencia</th>
+          <th onclick="srt('res','CANTIDAD_LICITADA')" style="width:65px;text-align:right">Cant.</th>
+          <th onclick="srt('res','PRECIO_MIN')" style="width:115px;text-align:right">Precio mín.</th>
+          <th onclick="srt('res','TOTAL_RENGLON')" style="width:120px;text-align:right">Monto total</th>
+          <th onclick="srt('res','CANT_PROVEEDORES')" style="width:65px;text-align:right">Provs.</th>
+          <th style="width:55px">Ver</th>
+        </tr></thead>
+        <tbody id="resBody"></tbody>
+      </table></div>
+      <div class="pg" id="res-pg"></div>
+    </div>
+  </div>
+  <div class="tab-panel" id="tab-detalle">
+    <div class="tw">
+      <div class="th"><h3>Cotizaciones por proveedor</h3><span class="tc" id="det-count">—</span></div>
+      <div class="ts"><table id="detTable">
+        <thead><tr>
+          <th onclick="srt('det','PROVEEDOR')">Proveedor</th>
+          <th onclick="srt('det','ORDEN')">Orden</th>
+          <th onclick="srt('det','FECHA')">Fecha</th>
+          <th onclick="srt('det','MEDICACION')">Medicación</th>
+          <th onclick="srt('det','RESIDENCIA')">Residencia</th>
+          <th onclick="srt('det','COTIZA')">Cotiza</th>
+          <th onclick="srt('det','PRECIO_UNITARIO')">P. Unitario</th>
+          <th onclick="srt('det','PRECIO_TOTAL')">P. Total</th>
+          <th onclick="srt('det','CANTIDAD_OFERTADA')">Cant.</th>
+          <th>Marca</th>
+        </tr></thead>
+        <tbody id="detBody"></tbody>
+      </table></div>
+      <div class="pg" id="det-pg"></div>
+    </div>
+  </div>
+  <div class="tab-panel" id="tab-analytics">
+    <div class="cc" style="margin-bottom:14px">
+      <h4>Erogación total por compulsa</h4>
+      <div id="ch-linea" style="width:100%;overflow-x:auto"></div>
+    </div>
+    <div class="cs" style="grid-template-columns:1fr 1fr;margin-bottom:14px">
+      <div class="cc"><h4>Share de gasto por droga</h4><div id="ch-pie-droga" style="width:100%"></div></div>
+      <div class="cc"><h4>Share de gasto por proveedor</h4><div id="ch-pie-prov" style="width:100%"></div></div>
+    </div>
+    <div class="cs">
+      <div class="cc"><h4>Cotizaciones SI por proveedor</h4><div class="bc" id="ch-prov"></div></div>
+      <div class="cc"><h4>Ítems por droga (top 15)</h4><div class="bc" id="ch-droga"></div></div>
+      <div class="cc"><h4>Ítems por residencia</h4><div class="bc" id="ch-res"></div></div>
+      <div class="cc"><h4>Top precios unitarios más altos</h4><div class="bc" id="ch-precio"></div></div>
+    </div>
+  </div>`;
+}
+
+// ══ FILTER INIT ══
+function initFilters() {
+  const drogas = [...new Set(RESUMEN.map(r=>r.DROGA).filter(Boolean))].sort();
+  const residencias = [...new Set([...RESUMEN,...DETALLE].map(r=>r.RESIDENCIA).filter(Boolean))].sort();
+  window._allDrogas = drogas; renderDrugChips(); pop('residenciaFilter', residencias);
+  if (MODE==='jueves') {
+    const provs = [...new Set(DETALLE.map(d=>d.PROVEEDOR).filter(Boolean))].sort();
+    pop('provFilter', provs);
+    // Populate fecha checkboxes
+    const fechaGroup = document.getElementById('fechaFilterGroup');
+    if (fechaGroup) fechaGroup.style.display = '';
+    const fechas = [...new Set(RESUMEN.map(r=>fechaStr(r.FECHA)).filter(Boolean))].sort();
+    const box = document.getElementById('fechaCheckboxes');
+    if (box) {
+      box.innerHTML = fechas.map(f =>
+        '<label class="fecha-check-label"><input type="checkbox" value="'+f+'" checked onchange="updateFechas()"> '+f+'</label>'
+      ).join('');
+    }
+    state.fechas = []; // empty = all selected
+  }
+}
+function pop(id, arr) {
+  const el = document.getElementById(id); if(!el) return;
+  el.innerHTML=''; _allOpts[id]=arr;
+  arr.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;el.appendChild(o);});
+}
+function filterSelect(id, query) {
+  const el=document.getElementById(id); if(!el) return;
+  const q=query.toLowerCase().trim(), all=_allOpts[id]||[];
+  const selected=new Set([...el.selectedOptions].map(o=>o.value));
+  el.innerHTML='';
+  all.filter(v=>!q||v.toLowerCase().includes(q)).forEach(v=>{
+    const o=document.createElement('option');o.value=v;o.textContent=v;
+    if(selected.has(v))o.selected=true;el.appendChild(o);
+  });
+}
+
+// ══ FILTER LOGIC ══
+function getRes() {
+  const s=state.search.toLowerCase();
+  const base=RESUMEN.filter(r=>{
+    if(s&&!((r.MEDICACION||'')+(r.DROGA||'')+(r.ID||'')+(r.FORMA||'')+(r.RESIDENCIA||'')+(r.EXPEDIENTE||'')).toLowerCase().includes(s))return false;
+    if(state.drugs.length&&!state.drugs.includes(r.DROGA))return false;
+    if(state.fechas.length){
+      if(state.fechas[0]==='__NONE__')return false;
+      if(!state.fechas.includes(fechaStr(r.FECHA)))return false;
+    }
+    if(state.residencias.length&&!state.residencias.includes(r.RESIDENCIA))return false;
+    if(state.provs.length){const has=state.provs.some(p=>{const v=r[p];return v&&v!=='N/C'&&v!=null});if(!has)return false;}
+    return true;
+  });
+  if(state._sinCotizOnly){
+    // Use ID+fecha composite to avoid cross-date contamination
+    const siKeys=new Set(DETALLE.filter(d=>d.COTIZA==='SI').map(d=>d.ID+'|'+fechaStr(d.FECHA)));
+    return base.filter(r=>!siKeys.has(r.ID+'|'+fechaStr(r.FECHA)));
+  }
+  if(state._winnerOnly){
+    const prov=state._winnerOnly;
+    return base.filter(r=>{
+      if(r.PRECIO_MIN==null||isNaN(r.PRECIO_MIN))return false;
+      const v=r[prov];if(v==null||v==='N/C')return false;
+      const price=parseFloat(String(v).replace(',','.'));
+      return!isNaN(price)&&Math.abs(price-r.PRECIO_MIN)<0.1;
+    });
+  }
+  return base;
+}
+function getDet(){
+  const s=state.search.toLowerCase();
+  // ORDEN+ID+MEDICACION: el ID solo puede repetirse entre renglones de
+  // droga distinta (mismo expediente reutilizado), así que no alcanza solo.
+  const rm={};RESUMEN.forEach(r=>{ rm[r.ORDEN+'|'+r.ID+'|'+r.MEDICACION]=r; });
+  return DETALLE.filter(d=>{
+    if(s&&!((d.MEDICACION||'')+(d.PROVEEDOR||'')+(d.ID||'')).toLowerCase().includes(s))return false;
+    const res=rm[d.ORDEN+'|'+d.ID+'|'+d.MEDICACION];
+    if(state.drugs.length&&(!res||!state.drugs.includes(res.DROGA)))return false;
+    if(state.fechas.length){
+      if(state.fechas[0]==='__NONE__')return false;
+      if(!state.fechas.includes(fechaStr(d.FECHA)))return false;
+    }
+    if(state.residencias.length&&!state.residencias.includes(d.RESIDENCIA))return false;
+    if(state.provs.length&&!state.provs.includes(d.PROVEEDOR))return false;
+    if(state.cotiza!=='all'&&d.COTIZA!==state.cotiza)return false;
+    return true;
+  });
+}
+
+// ══ SORT ══
+function sortArr(arr,col,dir){
+  return [...arr].sort((a,b)=>{
+    let av=a[col],bv=b[col];
+    if(av==null)av='';if(bv==null)bv='';
+    if(av instanceof Date&&bv instanceof Date)return dir==='asc'?av-bv:bv-av;
+    if(typeof av==='number'&&typeof bv==='number')return dir==='asc'?av-bv:bv-av;
+    return dir==='asc'?String(av).localeCompare(String(bv)):String(bv).localeCompare(String(av));
+  });
+}
+function srt(which,col){
+  if(which==='res'){if(state.rsCol===col)state.rsDir=state.rsDir==='asc'?'desc':'asc';else{state.rsCol=col;state.rsDir='asc';}state.resPage=1;}
+  else{if(state.dsCol===col)state.dsDir=state.dsDir==='asc'?'desc':'asc';else{state.dsCol=col;state.dsDir='asc';}state.detPage=1;}
+  render();
+}
+
+// ══ FORMAT ══
+const fmt=n=>(n==null||isNaN(n))?'—':'$'+Number(n).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmts=n=>{if(!n||isNaN(n))return'—';return'$'+(n/1e6).toFixed(1)+'M';};
+const esc=s=>s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+// ══ STATS ══
+function renderStats(fr,fd){
+  document.getElementById('s-items').textContent=fr.length;
+  document.getElementById('headerCount').textContent=fr.length+' ítems';
+  if(MODE==='jueves'){
+    var erogTotal=0,erogCount=0;
+    fr.forEach(function(r){
+      if(r.PRECIO_MIN!=null&&!isNaN(r.PRECIO_MIN)&&r.CANTIDAD_LICITADA!=null){
+        erogTotal+=r.PRECIO_MIN*r.CANTIDAD_LICITADA;erogCount++;
+      }
+    });
+    var eEl=document.getElementById('s-erogacion');
+    var eSubEl=document.getElementById('s-erogacion-sub');
+    if(eEl)eEl.textContent=fmts(erogTotal);
+    if(eSubEl)eSubEl.textContent=erogCount+' renglones adjudicados';
+  }
+  if(MODE==='lunes'){
+    document.getElementById('s-drogas').textContent=new Set(fr.map(r=>r.DROGA).filter(Boolean)).size;
+    document.getElementById('s-provs').textContent=new Set(fr.map(r=>r.RESIDENCIA).filter(Boolean)).size;
+    document.getElementById('s-sincotiz').textContent=new Set(fr.map(r=>r.SUBS||r.EXPEDIENTE).filter(Boolean)).size;
+    return;
+  }
+  const si=fd.filter(d=>d.COTIZA==='SI');
+  document.getElementById('s-drogas').textContent=new Set(fr.map(r=>r.DROGA).filter(Boolean)).size;
+  // idsConOferta: only DETALLE rows for IDs+FECHA combos present in fr
+  // This prevents cross-date contamination (same ID appears in multiple dates)
+  const frKeys=new Set(fr.map(r=>r.ID+'|'+fechaStr(r.FECHA)));
+  const idsConOferta=new Set(
+    DETALLE.filter(d=>d.COTIZA==='SI'&&frKeys.has(d.ID+'|'+fechaStr(d.FECHA))).map(d=>d.ID+'|'+fechaStr(d.FECHA))
+  );
+  const sinCotiz=fr.filter(r=>!idsConOferta.has(r.ID+'|'+fechaStr(r.FECHA)));
+  document.getElementById('s-sincotiz').textContent=sinCotiz.length;
+  document.getElementById('s-sincotiz-sub').textContent=sinCotiz.length===1?'renglón sin oferta':'renglones sin oferta';
+  if(state._winnerOnly&&fr.length){
+    const wonIDs=new Set(fr.map(r=>r.ID));
+    const comp=new Set(DETALLE.filter(d=>wonIDs.has(d.ID)&&d.COTIZA==='SI'&&d.PROVEEDOR!==state._winnerOnly).map(d=>d.PROVEEDOR));
+    document.getElementById('s-provs').textContent=comp.size;
+    document.getElementById('s-provs-sub').textContent='competidores enfrentados';
+  } else {
+    document.getElementById('s-provs').textContent=new Set(fd.map(d=>d.PROVEEDOR).filter(Boolean)).size;
+    document.getElementById('s-provs-sub').textContent='en la selección';
+  }
+  const provCols=getVendorCols(fr);
+  const winCount={},winTotal={};
+  fr.forEach(r=>{
+    const pmin=r.PRECIO_MIN,cant=parseFloat(r.CANTIDAD_LICITADA)||1;
+    if(pmin==null||isNaN(pmin))return;
+    provCols.forEach(p=>{
+      const v=r[p];if(v==null||v==='N/C')return;
+      const price=parseFloat(String(v).replace(',','.'));
+      if(isNaN(price))return;
+      if(Math.abs(price-pmin)<0.1){winCount[p]=(winCount[p]||0)+1;winTotal[p]=(winTotal[p]||0)+price*cant;}
+    });
+  });
+  const sorted=Object.entries(winCount).sort((a,b)=>(winTotal[b[0]]||0)-(winTotal[a[0]]||0)||b[1]-a[1]);
+  if(sorted.length){
+    const[name,count]=sorted[0];
+    _lastWinner=name;
+    document.getElementById('s-winner').textContent=name;
+    document.getElementById('s-winner-items').textContent=count;
+    document.getElementById('s-winner-total').textContent=fmts(winTotal[name]);
+  } else {
+    _lastWinner=null;
+    ['s-winner','s-winner-items','s-winner-total'].forEach(id=>document.getElementById(id).textContent='—');
+  }
+}
+
+// ══ RENDER RESUMEN TABLE ══
+function renderResumen(data){
+  const sorted=sortArr(data,state.rsCol,state.rsDir);
+  const total=sorted.length,pages=Math.ceil(total/state.ps)||1;
+  state.resPage=Math.min(state.resPage,pages);
+  const slice=sorted.slice((state.resPage-1)*state.ps,state.resPage*state.ps);
+  const el=document.getElementById('res-count');if(el)el.textContent=total+' resultados';
+  const tbody=document.getElementById('resBody');if(!tbody)return;
+  if(!slice.length){tbody.innerHTML='<tr><td colspan="'+(MODE==='lunes'?9:11)+'" class="empty">Sin resultados</td></tr>';renderPg('res-pg',1,1,0,'res');return;}
+  if(MODE==='lunes'){
+    tbody.innerHTML=slice.map(r=>`<tr>
+      <td class="num" style="font-size:11px">${r.ORDEN??'—'}</td>
+      <td style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace">${esc(r.ID)||'—'}</td>
+      <td style="font-size:10px;color:var(--muted2);font-family:'IBM Plex Mono',monospace;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.EXPEDIENTE)}">${esc(r.EXPEDIENTE)||'—'}</td>
+      <td><div class="trunc" title="${esc(r.MEDICACION)}">${esc(r.MEDICACION)||'—'}</div></td>
+      <td><span class="badge bpv">${esc(r.DROGA)||'—'}</span></td>
+      <td style="font-size:11px;color:var(--muted)">${esc(r.FORMA)||'—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${esc(r.POTENCIA)||'—'}</td>
+      <td style="font-size:11px">${esc(r.RESIDENCIA)||'—'}</td>
+      <td style="text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11px">${r.CANTIDAD_OFERTA??'—'}</td>
+    </tr>`).join('');
+  } else {
+    tbody.innerHTML=slice.map(r=>`<tr>
+      <td class="num">${r.ORDEN??'—'}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);white-space:nowrap">${fechaStr(r.FECHA)||'—'}</td>
+      <td><div class="trunc" style="max-width:420px" title="${esc(r.MEDICACION)}">${esc(r.MEDICACION)||'—'}</div></td>
+      <td><span class="badge bpv" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:bottom" title="${esc(r.DROGA)}">${esc(r.DROGA)||'—'}</span></td>
+      <td style="font-size:11px;color:var(--muted)">${esc(r.FORMA)||'—'}</td>
+      <td style="font-size:11px">${esc(r.RESIDENCIA)||'—'}</td>
+      <td class="num">${r.CANTIDAD_LICITADA??'—'}</td>
+      <td class="num pmin">${fmt(r.PRECIO_MIN)}</td>
+      <td class="num" style="color:var(--green);font-weight:700">${fmt(r.TOTAL_RENGLON)}</td>
+      <td class="num">${r.CANT_PROVEEDORES??'—'}</td>
+      <td><button onclick="openDet(${r._idx})" style="background:var(--accent2);border:none;color:#fff;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:11px;font-family:'IBM Plex Mono',monospace;font-weight:600">Ver</button></td>
+    </tr>`).join('');
+  }
+  updH('resTable',MODE==='lunes'?['ORDEN','ID','EXPEDIENTE','MEDICACION','DROGA','FORMA','POTENCIA','RESIDENCIA','CANTIDAD_OFERTA']:['ORDEN','FECHA','MEDICACION','DROGA','FORMA','RESIDENCIA','CANTIDAD_LICITADA','PRECIO_MIN','TOTAL_RENGLON','CANT_PROVEEDORES',''],state.rsCol,state.rsDir);
+  renderPg('res-pg',state.resPage,pages,total,'res');
+}
+
+// ══ RENDER DETALLE TABLE ══
+function renderDetalle(data){
+  const sorted=sortArr(data,state.dsCol,state.dsDir);
+  const total=sorted.length,pages=Math.ceil(total/state.ps)||1;
+  state.detPage=Math.min(state.detPage,pages);
+  const slice=sorted.slice((state.detPage-1)*state.ps,state.detPage*state.ps);
+  const el=document.getElementById('det-count');if(el)el.textContent=total+' cotizaciones';
+  const tbody=document.getElementById('detBody');if(!tbody)return;
+  const uniqueIDs=[...new Set(data.filter(d=>d.COTIZA==='SI'&&d.PRECIO_UNITARIO).map(d=>d.ID))];
+  const isSingle=uniqueIDs.length===1;
+  let minP=null,maxP=null;
+  if(isSingle){const pp=data.filter(d=>d.COTIZA==='SI'&&d.PRECIO_UNITARIO).map(d=>d.PRECIO_UNITARIO);if(pp.length>1){minP=Math.min(...pp);maxP=Math.max(...pp);}else if(pp.length===1)minP=pp[0];}
+  tbody.innerHTML=!slice.length?'<tr><td colspan="10" class="empty">Sin resultados</td></tr>':slice.map(d=>{
+    const isMin=isSingle&&d.COTIZA==='SI'&&d.PRECIO_UNITARIO===minP;
+    const isMax=isSingle&&d.COTIZA==='SI'&&d.PRECIO_UNITARIO===maxP&&maxP!==minP;
+    return`<tr class="${isMin?'det-min':isMax?'det-max':''}">
+      <td><span class="badge bpv">${isMin?'🟢 ':isMax?'🔴 ':{}}${esc(d.PROVEEDOR)||'—'}</span></td>
+      <td class="num">${d.ORDEN??'—'}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);white-space:nowrap">${fechaStr(d.FECHA)||'—'}</td>
+      <td><div class="trunc" title="${esc(d.MEDICACION)}">${esc(d.MEDICACION)||'—'}</div></td>
+      <td style="font-size:11px">${esc(d.RESIDENCIA)||'—'}</td>
+      <td><span class="badge ${d.COTIZA==='SI'?'bsi':'bno'}">${d.COTIZA||'—'}</span></td>
+      <td class="num">${d.COTIZA==='SI'?fmt(d.PRECIO_UNITARIO):'—'}</td>
+      <td class="num">${d.COTIZA==='SI'?fmt(d.PRECIO_TOTAL):'—'}</td>
+      <td class="num">${d.CANTIDAD_OFERTADA??'—'}</td>
+      <td style="font-size:11px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(d.MARCA_PRESENTACION)}">${esc(d.MARCA_PRESENTACION)||'—'}</td>
+    </tr>`;
+  }).join('');
+  updH('detTable',['PROVEEDOR','ORDEN','FECHA','MEDICACION','RESIDENCIA','COTIZA','PRECIO_UNITARIO','PRECIO_TOTAL','CANTIDAD_OFERTADA',''],state.dsCol,state.dsDir);
+  renderPg('det-pg',state.detPage,pages,total,'det');
+}
+
+function updH(tid,cols,col,dir){
+  document.querySelectorAll('#'+tid+' thead th').forEach((th,i)=>{th.classList.remove('sa','sd');if(cols[i]===col)th.classList.add(dir==='asc'?'sa':'sd');});
+}
+
+// ══ PAGINATION ══
+function renderPg(elId,page,pages,total,which){
+  const el=document.getElementById(elId);if(!el)return;
+  const s=(page-1)*state.ps+1,e=Math.min(page*state.ps,total);
+  const nums=[];for(let i=Math.max(1,page-2);i<=Math.min(pages,page+2);i++)nums.push(i);
+  el.innerHTML=`<span class="pgi">${s}–${e} de ${total}</span><div class="pgb">
+    <button class="pb" onclick="goPg('${which}',1)" ${page===1?'disabled':''}>«</button>
+    <button class="pb" onclick="goPg('${which}',${page-1})" ${page===1?'disabled':''}>‹</button>
+    ${nums.map(p=>`<button class="pb${p===page?' act':''}" onclick="goPg('${which}',${p})">${p}</button>`).join('')}
+    <button class="pb" onclick="goPg('${which}',${page+1})" ${page===pages?'disabled':''}>›</button>
+    <button class="pb" onclick="goPg('${which}',${pages})" ${page===pages?'disabled':''}>»</button>
+  </div>`;
+}
+function goPg(which,p){if(which==='res')state.resPage=p;else state.detPage=p;render();}
+
+// ══ ANALYTICS ══
+function renderAnalytics(fd,fr){
+  if(MODE==='lunes'){
+    const drogaC={};fr.forEach(r=>{if(r.DROGA)drogaC[r.DROGA]=(drogaC[r.DROGA]||0)+1;});
+    bar('ch-droga',drogaC,15,false);
+    const resC={};fr.forEach(r=>{if(r.RESIDENCIA)resC[r.RESIDENCIA]=(resC[r.RESIDENCIA]||0)+1;});
+    bar('ch-res',resC,10,false);
+    const formaC={};fr.forEach(r=>{if(r.FORMA)formaC[r.FORMA]=(formaC[r.FORMA]||0)+1;});
+    bar('ch-forma',formaC,12,false);
+    const cantC={};fr.forEach(r=>{if(r.DROGA&&r.CANTIDAD_LICITADA)cantC[r.DROGA]=(cantC[r.DROGA]||0)+(parseFloat(r.CANTIDAD_LICITADA)||0);});
+    bar('ch-cant',cantC,15,false);
+    return;
+  }
+  const provC={};fd.filter(d=>d.COTIZA==='SI').forEach(d=>{provC[d.PROVEEDOR]=(provC[d.PROVEEDOR]||0)+1;});
+  bar('ch-prov',provC,15,false);
+  const drogaC={};fr.forEach(r=>{if(r.DROGA)drogaC[r.DROGA]=(drogaC[r.DROGA]||0)+1;});
+  bar('ch-droga',drogaC,15,false);
+  const resC={};fr.forEach(r=>{if(r.RESIDENCIA)resC[r.RESIDENCIA]=(resC[r.RESIDENCIA]||0)+1;});
+  bar('ch-res',resC,10,false);
+  const topP={};fd.filter(d=>d.COTIZA==='SI'&&d.PRECIO_UNITARIO).forEach(d=>{const l=(d.MEDICACION||'').substring(0,28);if(!topP[l]||d.PRECIO_UNITARIO>topP[l])topP[l]=d.PRECIO_UNITARIO;});
+  bar('ch-precio',topP,10,true);
+  renderLineChart(fr);
+  var drogaGasto={};
+  fr.forEach(function(r){
+    if(!r.DROGA||!r.PRECIO_MIN||!r.CANTIDAD_LICITADA)return;
+    drogaGasto[r.DROGA]=(drogaGasto[r.DROGA]||0)+r.PRECIO_MIN*(parseFloat(r.CANTIDAD_LICITADA)||0);
+  });
+  renderPie('ch-pie-droga',drogaGasto,10);
+  var provGasto={};
+  var _pgCols=getVendorCols(fr);
+  fr.forEach(function(r){
+    if(!r.PRECIO_MIN||!r.CANTIDAD_LICITADA)return;
+    var pCols=_pgCols;
+    pCols.forEach(function(p){
+      var v=r[p];if(!v||v==='N/C')return;
+      var price=parseFloat(String(v).replace(',','.'));
+      if(!isNaN(price)&&Math.abs(price-r.PRECIO_MIN)<0.1){
+        provGasto[p]=(provGasto[p]||0)+price*(parseFloat(r.CANTIDAD_LICITADA)||0);
+      }
+    });
+  });
+  renderPie('ch-pie-prov',provGasto,10);
+}
+function bar(elId,counts,limit,isMoney){
+  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,limit);
+  const max=sorted.length?sorted[0][1]:1;
+  const el=document.getElementById(elId);if(!el)return;
+  el.innerHTML=sorted.length?sorted.map(([name,val])=>`<div class="br"><div class="bn" title="${esc(name)}">${esc(name)}</div><div class="bt"><div class="bf" style="width:${(val/max*100).toFixed(1)}%"></div></div><div class="bv">${isMoney?fmts(val):val}</div></div>`).join(''):'<div style="color:var(--muted);font-size:11px;font-family:\'IBM Plex Mono\',monospace">Sin datos</div>';
+}
+
+// ══ DETAIL MODAL ══
+function openDet(idx){
+  const r=RESUMEN[idx];if(!r)return;
+  document.getElementById('dl-title').textContent=r.MEDICACION||'—';
+  document.getElementById('dl-id').textContent='ID: '+(r.ID||'—')+' · Orden: '+(r.ORDEN||'—')+' · '+(r.RESIDENCIA||'—');
+  document.getElementById('dl-meta').innerHTML=[
+    ['Droga',esc(r.DROGA)],['Forma',esc(r.FORMA)],['Potencia',esc(r.POTENCIA)],
+    ['Cant. licitada',r.CANTIDAD_LICITADA],['Precio mínimo','<span style="color:var(--green);font-weight:700">'+fmt(r.PRECIO_MIN)+'</span>'],['Proveedores',r.CANT_PROVEEDORES]
+  ].map(([l,v])=>`<div class="dmi"><div class="dl">${l}</div><div class="dv">${v||'—'}</div></div>`).join('');
+  // ORDEN/ID solos pueden repetirse entre compulsas distintas; MEDICACION desambigua.
+  const offers=DETALLE.filter(d=>d.ORDEN===r.ORDEN&&d.ID===r.ID&&d.MEDICACION===r.MEDICACION&&d.COTIZA==='SI');
+  const prices=offers.filter(o=>o.PRECIO_UNITARIO).map(o=>o.PRECIO_UNITARIO);
+  const minP=prices.length?Math.min(...prices):null;
+  const sorted=[...offers].sort((a,b)=>(a.PRECIO_UNITARIO||999999)-(b.PRECIO_UNITARIO||999999));
+  document.getElementById('dl-offers').innerHTML=sorted.length?sorted.map(o=>{
+    const isMin=o.COTIZA==='SI'&&o.PRECIO_UNITARIO===minP;
+    return`<tr class="${isMin?'im':''}"><td>${isMin?'🏆 ':''}${esc(o.PROVEEDOR)||'—'}</td><td><span class="badge ${o.COTIZA==='SI'?'bsi':'bno'}">${o.COTIZA}</span></td><td class="num">${o.COTIZA==='SI'?fmt(o.PRECIO_UNITARIO):'—'}</td><td class="num">${o.COTIZA==='SI'?fmt(o.PRECIO_TOTAL):'—'}</td><td class="num">${o.CANTIDAD_OFERTADA??'—'}</td><td style="font-size:11px;color:var(--muted)">${esc((o.MARCA_PRESENTACION||'—').substring(0,45))}</td></tr>`;
+  }).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px;font-size:12px">Sin datos</td></tr>';
+  document.getElementById('dov').classList.add('open');
+}
+function closeDet(){document.getElementById('dov').classList.remove('open');}
+
+// ══ DROGA DETAIL ══
+function openDrogaDet(droga){
+  const provCols=getVendorCols(RESUMEN);
+  const items=RESUMEN.filter(r=>r.DROGA===droga&&r.PRECIO_MIN!=null).sort((a,b)=>fechaStr(b.FECHA).localeCompare(fechaStr(a.FECHA)));
+  document.getElementById('droga-title').textContent=droga;
+  const totalMonto=items.reduce((a,r)=>a+(r.PRECIO_MIN||0)*(parseFloat(r.CANTIDAD_LICITADA)||0),0);
+  document.getElementById('droga-sub').textContent=items.length+' renglones · Monto total: '+fmts(totalMonto);
+  const winCount={};
+  const tbody=document.getElementById('droga-body');
+  tbody.innerHTML=items.length?items.map(r=>{
+    const cant=parseFloat(r.CANTIDAD_LICITADA)||0;
+    const monto=(r.PRECIO_MIN||0)*cant;
+    let winner='—';
+    for(const p of provCols){const v=r[p];if(v==null||v==='N/C')continue;const price=parseFloat(String(v).replace(',','.'));if(!isNaN(price)&&Math.abs(price-r.PRECIO_MIN)<0.1){winner=p;winCount[p]=(winCount[p]||0)+1;break;}}
+    const fStr=fechaStr(r.FECHA);
+    return`<tr><td style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);white-space:nowrap">${fStr||'—'}</td><td><div class="trunc" style="max-width:200px" title="${esc(r.MEDICACION)}">${esc(r.MEDICACION)||'—'}</div></td><td style="font-size:11px">${esc(r.RESIDENCIA)||'—'}</td><td class="num">${cant}</td><td class="num" style="color:var(--muted)">${fmts(r.PRECIO_MIN)}</td><td class="num" style="color:var(--green);font-weight:700">${fmts(monto)}</td><td style="font-weight:600;color:var(--accent2);font-size:12px">${esc(winner)}</td></tr>`;
+  }).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px;font-size:12px">Sin datos</td></tr>';
+  const top=Object.entries(winCount).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('droga-footer').textContent=top.length?'Ganadores: '+top.map(([n,c])=>n+' ('+c+')').join(' · '):'';
+  document.getElementById('drogaOv').classList.add('open');
+}
+function closeDrogaDet(){document.getElementById('drogaOv').classList.remove('open');}
+
+// ══ PROVEEDOR DETAIL (renglones ganados) ══
+function openProvDet(prov){
+  const items=RESUMEN.filter(r=>{
+    if(r.PRECIO_MIN==null||isNaN(r.PRECIO_MIN))return false;
+    const v=r[prov];if(v==null||v==='N/C')return false;
+    const price=parseFloat(String(v).replace(',','.'));
+    return!isNaN(price)&&Math.abs(price-r.PRECIO_MIN)<0.1;
+  }).sort((a,b)=>fechaStr(b.FECHA).localeCompare(fechaStr(a.FECHA)));
+  document.getElementById('prov-title').textContent=prov;
+  const totalMonto=items.reduce((a,r)=>a+(r.PRECIO_MIN||0)*(parseFloat(r.CANTIDAD_LICITADA)||0),0);
+  document.getElementById('prov-sub').textContent=items.length+' renglones ganados · Monto total: '+fmts(totalMonto);
+  const drogaCount={};
+  const tbody=document.getElementById('prov-body');
+  tbody.innerHTML=items.length?items.map(r=>{
+    const cant=parseFloat(r.CANTIDAD_LICITADA)||0;
+    const monto=(r.PRECIO_MIN||0)*cant;
+    const droga=r.DROGA||'—';
+    drogaCount[droga]=(drogaCount[droga]||0)+1;
+    const fStr=fechaStr(r.FECHA);
+    return`<tr><td style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);white-space:nowrap">${fStr||'—'}</td><td><span class="badge bpv">${esc(droga)}</span></td><td><div class="trunc" style="max-width:200px" title="${esc(r.MEDICACION)}">${esc(r.MEDICACION)||'—'}</div></td><td style="font-size:11px">${esc(r.RESIDENCIA)||'—'}</td><td class="num">${cant}</td><td class="num" style="color:var(--muted)">${fmts(r.PRECIO_MIN)}</td><td class="num" style="color:var(--green);font-weight:700">${fmts(monto)}</td></tr>`;
+  }).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:16px;font-size:12px">Sin renglones ganados</td></tr>';
+  const top=Object.entries(drogaCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  document.getElementById('prov-footer').textContent=top.length?'Principales drogas: '+top.map(([n,c])=>n+' ('+c+')').join(' · '):'';
+  document.getElementById('provOv').classList.add('open');
+}
+function closeProvDet(){document.getElementById('provOv').classList.remove('open');}
+function printProvDet(){
+  var title = document.getElementById('prov-title').textContent;
+  var sub   = document.getElementById('prov-sub').textContent;
+  var table = document.querySelector('#prov-body').closest('table').outerHTML;
+  var footer = document.getElementById('prov-footer').innerHTML;
+  var win = window.open('', '_blank');
+  win.document.write('<html><head><title>' + title + '</title><style>'
+    + 'body{font-family:Arial,sans-serif;padding:24px;color:#1a1814}'
+    + 'h2{font-size:16px;margin:0 0 4px}'
+    + 'p{font-size:11px;color:#8a8278;margin:0 0 16px;font-family:monospace}'
+    + 'table{width:100%;border-collapse:collapse;font-size:12px}'
+    + 'th{background:#f5f3ef;text-align:left;padding:8px 10px;border-bottom:2px solid #e2ddd6;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#8a8278}'
+    + 'td{padding:8px 10px;border-bottom:1px solid #e2ddd6}'
+    + 'tr:nth-child(even){background:#faf9f7}'
+    + '.num{text-align:right}'
+    + '.badge{background:#eef;padding:2px 6px;border-radius:4px}'
+    + '.footer{margin-top:14px;padding-top:10px;border-top:1px solid #e2ddd6;font-size:11px;color:#8a8278;font-family:monospace}'
+    + '@media print{body{padding:0}}'
+    + '</style></head><body>'
+    + '<h2>' + title + '</h2>'
+    + '<p>' + sub + '</p>'
+    + table
+    + '<div class="footer">' + footer + '</div>'
+    + '</body></html>');
+  win.document.close();
+  win.focus();
+  setTimeout(function(){ win.print(); }, 400);
+}
+
+// ══ CARD CLICKS ══
+function updateCardHighlights(){
+  const wc=document.getElementById('winner-card');
+  const sc=document.getElementById('sincotiz-card');
+  if(wc)wc.classList.toggle('card-active',!!state._winnerOnly);
+  if(sc)sc.classList.toggle('card-active',!!state._sinCotizOnly);
+}
+function filterByWinner(){
+  if(!_lastWinner)return;
+  state._winnerOnly=state._winnerOnly?null:_lastWinner;
+  state._sinCotizOnly=false;
+  state.resPage=1;showTab('resumen');render();
+}
+function filterSinCotizar(){
+  state._sinCotizOnly=!state._sinCotizOnly;
+  state._winnerOnly=null;
+  state.resPage=1;showTab('resumen');render();
+}
+
+// ══ TABS ══
+function showTab(name){
+  const names=MODE==='lunes'?['resumen','drogas','analytics']:['ranking','productos','marcas','resumen','detalle','analytics'];
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',names[i]===name));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  const tp=document.getElementById('tab-'+name);if(tp)tp.classList.add('active');
+  if(name==='analytics')renderAnalytics(getDet(),getRes());
+  if(name==='ranking')renderRanking(getRes());
+  if(name==='productos')renderProductRanking(getRes());
+  if(name==='marcas')renderMarcaRanking(getDet());
+  if(name==='drogas')renderDrogas(getRes());
+}
+
+
+// ══ DROGAS GRID ══
+function renderDrogas(fr){
+  var counts={};
+  fr.forEach(function(r){if(r.DROGA)counts[r.DROGA]=(counts[r.DROGA]||0)+1;});
+  var sorted=Object.entries(counts).sort(function(a,b){return a[0].localeCompare(b[0]);});
+  var el=document.getElementById('drogas-count');
+  if(el)el.textContent=sorted.length+' drogas';
+  var grid=document.getElementById('drogas-grid');
+  if(!grid)return;
+  if(!sorted.length){grid.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px">Sin drogas</div>';return;}
+  grid.innerHTML=sorted.map(function(e){
+    var d=e[0],c=e[1];
+    return '<div style="background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--accent2);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;box-shadow:var(--shadow)">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--text);line-height:1.3">'+esc(d)+'</div>'
+      +'<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--muted)">'+c+' '+(c===1?'renglón':'renglones')+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+// ══ RANKING PROVEEDORES ══
+function sortRanking(col){
+  if(_rankSort.col===col)_rankSort.dir=_rankSort.dir==='asc'?'desc':'asc';
+  else{_rankSort.col=col;_rankSort.dir=col==='name'?'asc':'desc';}
+  renderRanking(getRes());
+}
+function renderRanking(fr){
+  const provCols=getVendorCols(fr);
+  const winCount={},winTotal={};
+  fr.forEach(r=>{
+    const pmin=r.PRECIO_MIN,cant=parseFloat(r.CANTIDAD_LICITADA)||1;
+    if(pmin==null||isNaN(pmin))return;
+    provCols.forEach(p=>{
+      const v=r[p];if(v==null||v==='N/C')return;
+      const price=parseFloat(String(v).replace(',','.'));
+      if(isNaN(price))return;
+      if(Math.abs(price-pmin)<0.1){winCount[p]=(winCount[p]||0)+1;winTotal[p]=(winTotal[p]||0)+price*cant;}
+    });
+  });
+  const totalErog=Object.values(winTotal).reduce((a,b)=>a+b,0);
+  let rows=Object.keys(winCount).map(p=>({name:p,items:winCount[p],total:winTotal[p],pct:totalErog>0?(winTotal[p]/totalErog*100):0}));
+  rows.sort((a,b)=>{const av=a[_rankSort.col],bv=b[_rankSort.col];if(typeof av==='string')return _rankSort.dir==='asc'?av.localeCompare(bv):bv.localeCompare(av);return _rankSort.dir==='asc'?av-bv:bv-av;});
+  const el=document.getElementById('ranking-count');if(el)el.textContent=rows.length+' proveedores';
+  const maxT=rows.reduce((m,r)=>r.total>m?r.total:m,0);
+  const tbody=document.getElementById('rankingBody');if(!tbody)return;
+  tbody.innerHTML=!rows.length?'<tr><td colspan="6" class="empty">Sin datos</td></tr>':rows.map((r,i)=>{
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+    return`<tr style="${i===0?'background:var(--surface2)':''}">
+      <td class="num" style="color:var(--muted);font-size:13px">${medal||'#'+(i+1)}</td>
+      <td style="font-weight:${i<3?'700':'400'}">${esc(r.name)}</td>
+      <td class="num" style="color:var(--green);font-weight:700">${fmts(r.total)}</td>
+      <td class="num">${r.items}</td>
+      <td style="min-width:140px"><div style="display:flex;align-items:center;gap:8px">
+        <div style="flex:1;background:var(--surface2);border-radius:3px;height:6px;overflow:hidden"><div style="width:${(r.total/maxT*100).toFixed(1)}%;height:100%;border-radius:3px;background:${i===0?'var(--green)':i===1?'var(--accent2)':i===2?'var(--accent)':'var(--border)'}"></div></div>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);width:36px;text-align:right">${r.pct.toFixed(1)}%</span>
+      </div></td>
+      <td><button onclick="openProvDet('${esc(r.name)}')" style="background:var(--accent2);border:none;color:#fff;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:11px;font-family:'IBM Plex Mono',monospace;font-weight:600">Ver</button></td>
+    </tr>`;
+  }).join('');
+  const cols=['','name','total','items',''];
+  document.querySelectorAll('#rankingTable thead th').forEach((th,i)=>{th.classList.remove('sa','sd');if(cols[i]===_rankSort.col)th.classList.add(_rankSort.dir==='asc'?'sa':'sd');});
+}
+
+// ══ RANKING PRODUCTOS ══
+function sortProd(col){
+  if(_prodSort.col===col)_prodSort.dir=_prodSort.dir==='asc'?'desc':'asc';
+  else{_prodSort.col=col;_prodSort.dir=col==='droga'?'asc':'desc';}
+  renderProductRanking(getRes());
+}
+function renderProductRanking(fr){
+  const grouped={};
+  fr.filter(r=>r.PRECIO_MIN!=null&&!isNaN(r.PRECIO_MIN)&&r.CANTIDAD_LICITADA!=null).forEach(r=>{
+    const droga=r.DROGA||'—';
+    const total=r.PRECIO_MIN*(parseFloat(r.CANTIDAD_LICITADA)||0);
+    if(!grouped[droga])grouped[droga]={droga,total:0,items:0};
+    grouped[droga].total+=total;grouped[droga].items+=1;
+  });
+  let rows=Object.values(grouped);
+  const grandTotal=rows.reduce((a,r)=>a+r.total,0);
+
+  // Filter by proveedor winner if search active
+  if (_provFilter) {
+    rows = rows.filter(function(r) {
+      var drogaRows = fr.filter(function(row){ return row.DROGA===r.droga && row.PRECIO_MIN!=null; });
+      return drogaRows.some(function(row) {
+        var pCols = getVendorCols([row]);
+        return pCols.some(function(p) {
+          if (!p.toUpperCase().includes(_provFilter)) return false;
+          var v = row[p]; if (!v || v==='N/C') return false;
+          var price = parseFloat(String(v).replace(',','.'));
+          return !isNaN(price) && Math.abs(price - row.PRECIO_MIN) < 0.1;
+        });
+      });
+    });
+  }
+
+  rows.sort((a,b)=>{const av=a[_prodSort.col],bv=b[_prodSort.col];if(typeof av==='string')return _prodSort.dir==='asc'?av.localeCompare(bv):bv.localeCompare(av);return _prodSort.dir==='asc'?av-bv:bv-av;});
+  const el=document.getElementById('prod-count');if(el)el.textContent=_provFilter ? rows.length+' droga'+(rows.length!==1?'s':'')+' ganadas por '+_provFilter : rows.length+' drogas';
+  const sortedMax=rows.reduce((m,r)=>r.total>m?r.total:m,0);
+  const tbody=document.getElementById('prodBody');if(!tbody)return;
+  tbody.innerHTML=!rows.length?'<tr><td colspan="6" class="empty">Sin datos</td></tr>':rows.map((r,i)=>{
+    const barW=sortedMax>0?(r.total/sortedMax*100).toFixed(1):0;
+    const pct=grandTotal>0?(r.total/grandTotal*100).toFixed(1):'0.0';
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+    return`<tr>
+      <td style="text-align:center;padding:4px"><input type="checkbox" class="droga-chk" data-droga="${esc(r.droga)}" onchange="updateDrogaSel()" style="cursor:pointer;accent-color:var(--accent2);width:14px;height:14px"></td>
+      <td class="num" style="color:var(--muted);font-size:13px">${medal||'#'+(i+1)}</td>
+      <td style="font-weight:${i<3?'700':'400'}">${esc(r.droga)}</td>
+      <td class="num" style="color:var(--green);font-weight:700">${fmts(r.total)}</td>
+      <td class="num">${r.items}</td>
+      <td style="min-width:140px"><div style="display:flex;align-items:center;gap:8px">
+        <div style="flex:1;background:var(--surface2);border-radius:3px;height:6px;overflow:hidden"><div style="width:${barW}%;height:100%;border-radius:3px;background:${i===0?'var(--green)':i===1?'var(--accent2)':i===2?'var(--accent)':'var(--border)'}"></div></div>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);width:36px;text-align:right">${pct}%</span>
+      </div></td>
+      <td><button onclick="openDrogaDet('${esc(r.droga)}')" style="background:var(--accent2);border:none;color:#fff;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:11px;font-family:'IBM Plex Mono',monospace;font-weight:600">Ver</button></td>
+    </tr>`;
+  }).join('');
+  _selectedDrogas = new Set(); var btn2=document.getElementById('btn-print-sel');if(btn2)btn2.style.display='none';var lbl2=document.getElementById('sel-count-label');if(lbl2)lbl2.textContent='';var chkAll2=document.getElementById('chk-all-drogas');if(chkAll2)chkAll2.checked=false;
+  const cols=['','droga','total','items','',''];
+  document.querySelectorAll('#prodTable thead th').forEach((th,i)=>{th.classList.remove('sa','sd');if(cols[i]===_prodSort.col)th.classList.add(_prodSort.dir==='asc'?'sa':'sd');});
+}
+
+// ══ CONTROLS ══
+function setCotiza(v){
+  state.cotiza=v;state.detPage=1;
+  ['all','si','no'].forEach(k=>{const b=document.getElementById('c-'+k);if(b){b.className='cbtn';if(k===v)b.classList.add('a-'+k);}});
+  render();
+}
+function clearSel(id){const el=document.getElementById(id);if(!el)return;for(const o of el.options)o.selected=false;updateFromSelects();}
+function updateFromSelects(){
+  // state.drugs managed by smart filter
+  state.residencias=[...document.getElementById('residenciaFilter').selectedOptions].map(o=>o.value);
+  if(MODE==='jueves'&&document.getElementById('provFilter'))state.provs=[...document.getElementById('provFilter').selectedOptions].map(o=>o.value);
+  state._sinCotizOnly=false;state._winnerOnly=null;state.resPage=1;state.detPage=1;render();
+}
+function resetFilters(){
+  state.search='';state.drugs=[];state.formas=[];state.residencias=[];state.provs=[]; renderDrugChips();
+  state.cotiza='all';state.resPage=1;state.detPage=1;state._sinCotizOnly=false;state._winnerOnly=null;
+  const sb=document.getElementById('searchBox');if(sb)sb.value='';
+  ['residenciaFilter','provFilter'].forEach(id=>{
+    const sel=document.getElementById(id);if(!sel)return;
+    const si=sel.previousElementSibling;if(si&&si.classList.contains('sel-search'))si.value='';
+    filterSelect(id,'');for(const o of sel.options)o.selected=false;
+  });
+  document.querySelectorAll('#fechaCheckboxes input[type=checkbox]').forEach(c=>{c.checked=true;});
+  const ca=document.getElementById('c-all');if(ca){['all','si','no'].forEach(k=>{const b=document.getElementById('c-'+k);if(b)b.className='cbtn';});ca.classList.add('a-all');}
+  render();
+}
+
+// ══ MASTER RENDER ══
+function render(){
+  const fr=getRes(),fd=getDet();
+  renderStats(fr,fd);
+  renderResumen(fr);
+  if(MODE==='jueves'){renderDetalle(fd);updateCardHighlights();}
+  headerCount();
+}
+function headerCount(){
+  const el=document.getElementById('headerCount');
+  if(el)el.textContent=getRes().length+' ítems';
+}
+
+// ══ FILE INPUT ══
+document.getElementById('fileInput').addEventListener('change',e=>{
+  const file=e.target.files[0];if(file)loadFile(file);
+});
+const dz=document.getElementById('dropZone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');const file=e.dataTransfer.files[0];if(file)loadFile(file);});
+
+// ══ HAMBURGER ══
+const hamburgerBtn=document.getElementById('hamburgerBtn');
+const sidebarEl=document.getElementById('mainSidebar');
+const overlayEl=document.getElementById('sidebarOverlay');
+function toggleSidebar(){const isOpen=sidebarEl.classList.toggle('open');hamburgerBtn.classList.toggle('open',isOpen);overlayEl.style.display=isOpen?'block':'none';}
+hamburgerBtn.addEventListener('click',toggleSidebar);
+overlayEl.addEventListener('click',toggleSidebar);
+
+// ══ KEYBOARD ══
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDet();closeDrogaDet();}});
+
+document.getElementById('searchBox').addEventListener('input',e=>{
+  state.search=e.target.value;state.resPage=1;state.detPage=1;render();
+});
+['residenciaFilter','provFilter'].forEach(id=>{
+  const el=document.getElementById(id);if(el)el.addEventListener('change',updateFromSelects);
+});
+
+// ══ MODULO HISTORICO ══
+var HIST = [];
+var HIST_ON = {};
+
+function openHistorico() {
+  document.getElementById('hubScreen').style.display = 'none';
+  document.getElementById('historicoScreen').style.display = 'flex';
+  histRender();
+}
+
+function closeHistorico() {
+  document.getElementById('historicoScreen').style.display = 'none';
+  document.getElementById('hubScreen').style.display = 'flex';
+}
+
+function histAllOn() {
+  HIST.forEach(function(h) { HIST_ON[h.id] = true; });
+  histRender();
+}
+
+function histToggle(idx) {
+  var id = HIST[idx].id;
+  var on = HIST.filter(function(h) { return HIST_ON[h.id]; });
+  if (HIST_ON[id] && on.length === 1) return;
+  HIST_ON[id] = !HIST_ON[id];
+  histRender();
+}
+
+function histRemove(idx) {
+  var id = HIST[idx].id;
+  HIST.splice(idx, 1);
+  delete HIST_ON[id];
+  histRender();
+}
+
+document.getElementById('histFileInput').addEventListener('change', function(e) {
+  var files = Array.from(e.target.files);
+  var pending = files.length;
+  if (!pending) return;
+  files.forEach(function(file) {
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var wb = XLSX.read(ev.target.result, {type: 'array'});
+      var id = file.name.replace(/\.xlsx?$/i, '');
+      var wsR = wb.Sheets['RESUMEN'];
+      var wsD = wb.Sheets['DETALLE'];
+      if (wsR) {
+        var rawR = XLSX.utils.sheet_to_json(wsR, {defval: null});
+        var rawD = wsD ? XLSX.utils.sheet_to_json(wsD, {defval: null}) : [];
+        var existing = HIST.findIndex(function(h) { return h.id === id; });
+        var entry = {
+          id: id,
+          resumen: rawR.map(function(r) {
+            return Object.assign({}, r, {
+              RESIDENCIA: r.RESIDENCIA ? String(r.RESIDENCIA).toUpperCase().trim() : null,
+              PRECIO_MIN: r.PRECIO_MIN != null ? Number(r.PRECIO_MIN) || null : null,
+              CANTIDAD_LICITADA: r.CANTIDAD_LICITADA != null ? Number(r.CANTIDAD_LICITADA) || null : null
+            });
+          }),
+          detalle: rawD.map(function(d) {
+            return Object.assign({}, d, {
+              RESIDENCIA: d.RESIDENCIA ? String(d.RESIDENCIA).toUpperCase().trim() : null,
+              PRECIO_UNITARIO: d.PRECIO_UNITARIO != null ? Number(d.PRECIO_UNITARIO) || null : null,
+              PRECIO_TOTAL: d.PRECIO_TOTAL != null ? Number(d.PRECIO_TOTAL) || null : null,
+              COTIZA: d.COTIZA ? String(d.COTIZA).toUpperCase().trim() : 'NO'
+            });
+          })
+        };
+        if (existing >= 0) { HIST[existing] = entry; } else { HIST.push(entry); }
+        HIST_ON[id] = true;
+      }
+      pending--;
+      if (pending === 0) { e.target.value = ''; histRender(); }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+});
+
+function histActive() {
+  var res = [], det = [];
+  HIST.filter(function(h) { return HIST_ON[h.id]; }).forEach(function(h) {
+    res = res.concat(h.resumen);
+    det = det.concat(h.detalle);
+  });
+  return {res: res, det: det};
+}
+
+function histRender() {
+  var fl = document.getElementById('hist-file-list');
+  if (HIST.length === 0) {
+    fl.innerHTML = '<div style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted2)">Sin archivos</div>';
+    document.getElementById('hist-chips').innerHTML = '';
+    document.getElementById('hist-content').innerHTML = '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--muted2)"><div style="font-size:44px;opacity:.35">&#128200;</div><div style="font-family:IBM Plex Mono,monospace;font-size:12px;text-align:center;line-height:1.8">Cargá una o más compulsas<br>para ver el análisis histórico</div><label for="histFileInput" style="padding:12px 28px;background:#10b981;color:#fff;border-radius:8px;cursor:pointer;font-family:IBM Plex Mono,monospace;font-size:12px;font-weight:600">📂 Cargar archivos Excel</label></div>';
+    return;
+  }
+  var fileHTML = '';
+  HIST.forEach(function(h, i) {
+    fileHTML += '<div class="hist-file"><div class="hf-name" title="' + esc(h.id) + '">' + esc(h.id) + '</div><button class="hf-del" data-idx="' + i + '">×</button></div>';
+  });
+  fl.innerHTML = fileHTML;
+  fl.querySelectorAll('.hf-del').forEach(function(btn) {
+    btn.addEventListener('click', function() { histRemove(parseInt(this.dataset.idx)); });
+  });
+  var chipHTML = '';
+  HIST.forEach(function(h, i) {
+    chipHTML += '<span class="hist-chip' + (HIST_ON[h.id] ? ' on' : '') + '" data-idx="' + i + '">' + esc(h.id) + '</span>';
+  });
+  var chipsEl = document.getElementById('hist-chips');
+  chipsEl.innerHTML = chipHTML;
+  chipsEl.querySelectorAll('.hist-chip').forEach(function(chip) {
+    chip.addEventListener('click', function() { histToggle(parseInt(this.dataset.idx)); });
+  });
+
+  var d = histActive();
+  var res = d.res, det = d.det;
+  var si = det.filter(function(x) { return x.COTIZA === 'SI'; });
+  var erog = 0;
+  res.forEach(function(r) { if (r.PRECIO_MIN && r.CANTIDAD_LICITADA) erog += r.PRECIO_MIN * r.CANTIDAD_LICITADA; });
+
+  var provCols = getVendorCols(res);
+  var wCount = {}, wTotal = {};
+  res.forEach(function(r) {
+    var pmin = r.PRECIO_MIN, cant = Number(r.CANTIDAD_LICITADA) || 1;
+    if (!pmin || isNaN(pmin)) return;
+    provCols.forEach(function(p) {
+      var v = r[p]; if (!v || v === 'N/C') return;
+      var price = parseFloat(String(v).replace(',', '.'));
+      if (isNaN(price)) return;
+      if (Math.abs(price - pmin) < 0.1) { wCount[p] = (wCount[p]||0)+1; wTotal[p] = (wTotal[p]||0)+price*cant; }
+    });
+  });
+  var dCount = {}, dTotal = {};
+  res.forEach(function(r) {
+    if (!r.DROGA) return;
+    dCount[r.DROGA] = (dCount[r.DROGA]||0)+1;
+    if (r.PRECIO_MIN && r.CANTIDAD_LICITADA) dTotal[r.DROGA] = (dTotal[r.DROGA]||0)+r.PRECIO_MIN*(Number(r.CANTIDAD_LICITADA)||0);
+  });
+  var provSet = new Set(si.map(function(x) { return x.PROVEEDOR; }).filter(Boolean));
+  var activeCount = HIST.filter(function(h) { return HIST_ON[h.id]; }).length;
+
+  var pRows = Object.keys(wCount).map(function(p) { return {name:p, items:wCount[p], total:wTotal[p]||0}; });
+  pRows.sort(function(a,b) { return b.total-a.total; });
+  var pMax = pRows.length ? pRows[0].total : 1;
+  var pTot = pRows.reduce(function(a,r) { return a+r.total; }, 0);
+  var dRows = Object.keys(dCount).map(function(dr) { return {droga:dr, count:dCount[dr], total:dTotal[dr]||0}; });
+  dRows.sort(function(a,b) { return b.total-a.total; });
+  var dMax = dRows.length ? dRows[0].total : 1;
+  var dTot = dRows.reduce(function(a,r) { return a+r.total; }, 0);
+  var pList = Array.from(provSet).sort();
+
+  // ── KPI podio: name + monto ──
+  var podio = '';
+  pRows.slice(0,3).forEach(function(r,i) {
+    var m = i===0?'🥇':i===1?'🥈':'🥉';
+    podio += '<div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;font-family:IBM Plex Mono,monospace;color:var(--muted);gap:4px">'
+      +'<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+m+' '+esc(r.name)+'</span>'
+      +'<span style="white-space:nowrap;color:var(--green);font-weight:600;flex-shrink:0">'+fmts(r.total)+'</span>'
+      +'</div>';
+  });
+
+  var out = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">';
+  out += hKpi('Compulsas totales', activeCount, 'archivos en análisis');
+  out += '<div class="sc ab"><div class="slabel">Proveedores únicos</div>'
+    +'<div class="sval" style="font-size:26px;letter-spacing:0">'+provSet.size+'</div>'
+    +'<div style="margin-top:6px;display:flex;flex-direction:column;gap:3px">'+podio+'</div></div>';
+  out += hKpi('Drogas distintas', Object.keys(dCount).length, 'en la selección');
+  // Total compulsas — bigger font
+  out += '<div class="sc ab"><div class="slabel">Total compulsas</div>'
+    +'<div class="sval" style="font-size:32px;letter-spacing:0">'+fmts(erog)+'</div>'
+    +'<div class="ssub">precio mín × cantidad</div></div>';
+  out += '</div>';
+
+  function thCell(txt, right) {
+    return '<th style="text-align:'+(right?'right':'left')+';font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-family:IBM Plex Mono,monospace;padding:7px 8px;border-bottom:1px solid var(--border);background:var(--surface2)">'+txt+'</th>';
+  }
+
+  // ── TRES TABLAS LADO A LADO ──
+  out += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start">';
+
+  // 1. Ranking proveedores — ALL providers who quoted SI
+  var allProvRows = Array.from(provSet).map(function(p) {
+    return {name: p, items: wCount[p]||0, total: wTotal[p]||0};
+  });
+  allProvRows.sort(function(a,b) { return b.total-a.total; });
+  out += '<div class="tw"><div class="th"><h3>🏆 Proveedores</h3><span class="tc">'+allProvRows.length+'</span></div>'
+    +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr>'
+    +thCell('#',false)+thCell('Proveedor',false)+thCell('Total ganado',true)+thCell('Ítems',true)
+    +'</tr></thead><tbody>';
+  allProvRows.forEach(function(r,i) {
+    var medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1);
+    out += '<tr style="border-bottom:1px solid var(--border);'+(i===0?'background:var(--surface2)':'')+'">'
+      +'<td style="padding:6px 8px;font-size:12px;color:var(--muted)">'+medal+'</td>'
+      +'<td style="padding:6px 8px;font-size:11px;font-weight:'+(i<3?700:400)+';" title="'+esc(r.name)+'">'+esc(r.name)+'</td>'
+      +'<td style="padding:6px 8px;font-size:11px;text-align:right;font-family:IBM Plex Mono,monospace;color:'+(r.total>0?'var(--green)':'var(--muted)')+';font-weight:'+(r.total>0?700:400)+'">'+(r.total>0?fmts(r.total):'—')+'</td>'
+      +'<td style="padding:6px 8px;font-size:11px;text-align:right;font-family:IBM Plex Mono,monospace;color:var(--muted)">'+r.items+'</td>'
+      +'</tr>';
+  });
+  out += '</tbody></table></div></div>';
+
+  // 2. Ranking drogas
+  out += '<div class="tw"><div class="th"><h3>💊 Drogas</h3><span class="tc">'+dRows.length+'</span></div>'
+    +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr>'
+    +thCell('Droga',false)+thCell('Monto',true)+'<th style="padding:7px 8px;border-bottom:1px solid var(--border);background:var(--surface2);width:44px"></th>'
+    +'</tr></thead><tbody>';
+  dRows.forEach(function(r,i) {
+    var medal = i===0?'🥇 ':i===1?'🥈 ':i===2?'🥉 ':'';
+    out += '<tr style="border-bottom:1px solid var(--border)">'
+      +'<td style="padding:6px 8px;font-size:11px;font-weight:'+(i<3?700:400)+';word-break:break-word;">'+medal+esc(r.droga)+'</td>'
+      +'<td style="padding:6px 8px;font-size:11px;text-align:right;font-family:IBM Plex Mono,monospace;color:var(--accent2);font-weight:700;white-space:nowrap">'+fmts(r.total)+'</td>'
+      +'<td style="padding:6px 8px"><button class="hist-ver-btn" data-droga="'+esc(r.droga)+'" style="background:var(--accent2);border:none;color:#fff;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:10px;font-family:IBM Plex Mono,monospace;font-weight:600">Ver</button></td>'
+      +'</tr>';
+  });
+  out += '</tbody></table></div></div>';
+
+  out += '</div>'; // end 2-col grid
+
+  // Modal
+  out += '<div id="hist-price-modal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(26,24,20,.65);backdrop-filter:blur(3px);align-items:center;justify-content:center">'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;width:720px;max-width:95vw;max-height:85vh;overflow-y:auto;padding:26px;box-shadow:0 20px 60px rgba(0,0,0,.2)">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">'
+    +'<div id="hist-price-title" style="font-size:15px;font-weight:700"></div>'
+    +'<button id="hist-price-close" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px">✕ Cerrar</button>'
+    +'</div><div id="hist-price-body"></div>'
+    +'</div></div>';
+
+  document.getElementById('hist-content').innerHTML = out;
+
+  document.querySelectorAll('.hist-ver-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { histShowPrices(this.dataset.droga); });
+  });
+  var modal = document.getElementById('hist-price-modal');
+  document.getElementById('hist-price-close').addEventListener('click', function() { modal.style.display='none'; });
+  modal.addEventListener('click', function(e) { if (e.target===modal) modal.style.display='none'; });
+}
+
+function histShowPrices(droga) {
+  var compulsas = [];
+  HIST.filter(function(h) { return HIST_ON[h.id]; }).forEach(function(h) {
+    var items = h.resumen.filter(function(r) { return r.DROGA === droga; });
+    if (!items.length) return;
+    var provCols = getVendorCols(items);
+    var enriched = items.map(function(r) {
+      var winner = '—';
+      if (r.PRECIO_MIN != null) {
+        provCols.forEach(function(p) {
+          var v = r[p]; if (!v || v==='N/C') return;
+          var price = parseFloat(String(v).replace(',','.'));
+          if (!isNaN(price) && Math.abs(price-r.PRECIO_MIN)<0.1) winner = p;
+        });
+      }
+      return {medicacion:r.MEDICACION||droga, residencia:r.RESIDENCIA, precio_min:r.PRECIO_MIN, cantidad:r.CANTIDAD_LICITADA, winner:winner};
+    });
+    compulsas.push({id:h.id, items:enriched});
+  });
+
+  document.getElementById('hist-price-title').textContent = droga + ' — Historial de precios';
+
+  function thP(txt, right) {
+    return '<th style="text-align:'+(right?'right':'left')+';font-size:10px;text-transform:uppercase;color:var(--muted);font-family:IBM Plex Mono,monospace;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--surface2)">'+txt+'</th>';
+  }
+
+  var body = '<div style="font-family:IBM Plex Mono,monospace;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Resumen por compulsa</div>';
+  body += '<table style="width:100%;border-collapse:collapse;margin-bottom:20px"><thead><tr>'
+    +thP('Compulsa',false)+thP('Renglones',true)+thP('Ganador (precio más bajo)',false)+thP('Precio mín más bajo',true)+thP('Precio mín más alto',true)
+    +'</tr></thead><tbody>';
+  compulsas.forEach(function(c) {
+    var precios = c.items.map(function(r){return r.precio_min;}).filter(function(p){return p!=null&&!isNaN(p);});
+    var minP = precios.length?Math.min.apply(null,precios):null;
+    var maxP = precios.length?Math.max.apply(null,precios):null;
+    var winners = c.items.filter(function(r){return r.precio_min===minP;}).map(function(r){return r.winner;}).filter(function(w){return w!=='—';});
+    body += '<tr style="border-bottom:1px solid var(--border)">'
+      +'<td style="padding:9px 10px;font-size:11px;font-family:IBM Plex Mono,monospace;color:var(--muted)">'+esc(c.id)+'</td>'
+      +'<td style="padding:9px 10px;font-size:12px;text-align:right">'+c.items.length+'</td>'
+      +'<td style="padding:9px 10px;font-size:12px;font-weight:700;color:var(--accent2)">'+esc(winners.length?winners[0]:'—')+'</td>'
+      +'<td style="padding:9px 10px;font-size:12px;text-align:right;font-family:IBM Plex Mono,monospace;color:var(--green);font-weight:700">'+(minP!=null?fmt(minP):'—')+'</td>'
+      +'<td style="padding:9px 10px;font-size:12px;text-align:right;font-family:IBM Plex Mono,monospace;color:var(--accent)">'+(maxP!=null?fmt(maxP):'—')+'</td>'
+      +'</tr>';
+  });
+  body += '</tbody></table>';
+
+  body += '<div style="font-family:IBM Plex Mono,monospace;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Detalle por renglón</div>';
+  body += '<table style="width:100%;border-collapse:collapse"><thead><tr>'
+    +thP('Compulsa',false)+thP('Medicación',false)+thP('Residencia',false)+thP('Ganador',false)+thP('Precio mín.',true)+thP('Cantidad',true)
+    +'</tr></thead><tbody>';
+  compulsas.forEach(function(c) {
+    c.items.forEach(function(r) {
+      body += '<tr style="border-bottom:1px solid var(--border)">'
+        +'<td style="padding:8px 10px;font-size:10px;font-family:IBM Plex Mono,monospace;color:var(--muted)">'+esc(c.id)+'</td>'
+        +'<td style="padding:8px 10px;font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.medicacion)+'</td>'
+        +'<td style="padding:8px 10px;font-size:11px">'+esc(r.residencia||'—')+'</td>'
+        +'<td style="padding:8px 10px;font-size:11px;font-weight:700;color:var(--accent2)">'+esc(r.winner)+'</td>'
+        +'<td style="padding:8px 10px;font-size:12px;text-align:right;font-family:IBM Plex Mono,monospace;color:var(--green);font-weight:700">'+(r.precio_min!=null?fmt(r.precio_min):'—')+'</td>'
+        +'<td style="padding:8px 10px;font-size:12px;text-align:right;font-family:IBM Plex Mono,monospace">'+(r.cantidad||'—')+'</td>'
+        +'</tr>';
+    });
+  });
+  body += '</tbody></table>';
+
+  document.getElementById('hist-price-body').innerHTML = body;
+  document.getElementById('hist-price-modal').style.display = 'flex';
+}
+
+function hKpi(label, val, sub) {
+  return '<div class="sc ab"><div class="slabel">'+label+'</div>'
+    +'<div class="sval" style="font-size:26px;letter-spacing:0">'+val+'</div>'
+    +'<div class="ssub">'+sub+'</div></div>';
+}
+
+
+// ── FECHA FILTER FUNCTIONS ──
+function fechaStr(val) {
+  // Convert FECHA value to YYYY-MM-DD string safely regardless of timezone
+  if (!val) return '';
+  if (val instanceof Date) {
+    return val.getFullYear() + '-'
+      + String(val.getMonth()+1).padStart(2,'0') + '-'
+      + String(val.getDate()).padStart(2,'0');
+  }
+  return String(val).slice(0,10);
+}
+
+function updateFechas() {
+  var boxes = document.querySelectorAll('#fechaCheckboxes input[type=checkbox]');
+  var checked = Array.from(boxes).filter(function(c){return c.checked;}).map(function(c){return c.value;});
+  if (checked.length === 0) {
+    state.fechas = ['__NONE__']; // no dates selected = show nothing
+  } else if (checked.length === boxes.length) {
+    state.fechas = []; // all selected = no filter
+  } else {
+    state.fechas = checked;
+  }
+  state.resPage=1; state.detPage=1; render();
+}
+
+function clearFechas(selectAll) {
+  var val = (selectAll === false) ? false : true;
+  document.querySelectorAll('#fechaCheckboxes input[type=checkbox]').forEach(function(c){c.checked=val;});
+  state.fechas = val ? [] : ['__NONE__'];
+  state.resPage=1; state.detPage=1; render();
+}
+
+// ── LINE CHART: Erogación por compulsa ──
+function renderLineChart(fr) {
+  var el = document.getElementById('ch-linea');
+  if (!el) return;
+
+  // Group by fecha: sum PRECIO_MIN * CANTIDAD_LICITADA
+  var byFecha = {};
+  fr.forEach(function(r) {
+    if (!r.FECHA || r.PRECIO_MIN == null || r.CANTIDAD_LICITADA == null) return;
+    var f = fechaStr(r.FECHA);
+    if (!byFecha[f]) byFecha[f] = 0;
+    byFecha[f] += r.PRECIO_MIN * (parseFloat(r.CANTIDAD_LICITADA) || 0);
+  });
+
+  var points = Object.keys(byFecha).sort().map(function(f) {
+    return {fecha: f, valor: byFecha[f]};
+  });
+
+  if (points.length < 2) {
+    el.innerHTML = '<div style="font-family:IBM Plex Mono,monospace;font-size:11px;color:var(--muted);padding:8px">Se necesitan al menos 2 fechas para mostrar el gráfico.</div>';
+    return;
+  }
+
+  var W = Math.max(el.clientWidth || 600, 400);
+  var H = 220;
+  var PAD = {top:20, right:20, bottom:50, left:70};
+  var cW = W - PAD.left - PAD.right;
+  var cH = H - PAD.top - PAD.bottom;
+
+  var maxVal = Math.max.apply(null, points.map(function(p){return p.valor;}));
+  var minVal = 0;
+
+  function xPos(i) { return PAD.left + (i / (points.length - 1)) * cW; }
+  function yPos(v) { return PAD.top + cH - ((v - minVal) / (maxVal - minVal || 1)) * cH; }
+
+  // Colors from CSS vars — use hardcoded equivalents for SVG
+  var lineColor = '#1a4fc8';   // --accent2
+  var dotColor  = '#1a4fc8';
+  var gridColor = '#e2ddd6';   // --border
+  var textColor = '#8a8278';   // --muted
+
+  var svg = '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:400px;font-family:IBM Plex Mono,monospace">';
+
+  // Grid lines (5 horizontal)
+  for (var g = 0; g <= 4; g++) {
+    var gy = PAD.top + (g / 4) * cH;
+    var gv = maxVal - (g / 4) * maxVal;
+    svg += '<line x1="'+PAD.left+'" y1="'+gy+'" x2="'+(PAD.left+cW)+'" y2="'+gy+'" stroke="'+gridColor+'" stroke-width="1"/>';
+    svg += '<text x="'+(PAD.left-6)+'" y="'+(gy+4)+'" text-anchor="end" font-size="10" fill="'+textColor+'">'+(gv/1e6).toFixed(0)+'M</text>';
+  }
+
+  // X axis line
+  svg += '<line x1="'+PAD.left+'" y1="'+(PAD.top+cH)+'" x2="'+(PAD.left+cW)+'" y2="'+(PAD.top+cH)+'" stroke="'+gridColor+'" stroke-width="1"/>';
+
+  // Line path
+  var pathD = points.map(function(p, i) {
+    return (i===0?'M':'L') + xPos(i).toFixed(1) + ',' + yPos(p.valor).toFixed(1);
+  }).join(' ');
+  svg += '<path d="'+pathD+'" fill="none" stroke="'+lineColor+'" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+
+  // Area fill
+  var areaD = pathD + ' L'+xPos(points.length-1).toFixed(1)+','+(PAD.top+cH)+' L'+PAD.left+','+(PAD.top+cH)+' Z';
+  svg += '<path d="'+areaD+'" fill="'+lineColor+'" fill-opacity="0.08"/>';
+
+  // Dots + labels
+  points.forEach(function(p, i) {
+    var x = xPos(i), y = yPos(p.valor);
+    svg += '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="4" fill="'+dotColor+'" stroke="#fff" stroke-width="1.5"/>';
+    // Value label above dot
+    svg += '<text x="'+x.toFixed(1)+'" y="'+(y-10).toFixed(1)+'" text-anchor="middle" font-size="10" fill="'+lineColor+'" font-weight="600">'+(p.valor/1e6).toFixed(1)+'M</text>';
+    // X label: short date
+    var parts = p.fecha.split('-');
+    var label = parts[2]+'/'+parts[1];
+    var rotate = points.length > 6 ? 'transform="rotate(-35 '+x.toFixed(1)+' '+(PAD.top+cH+14)+')"' : '';
+    svg += '<text x="'+x.toFixed(1)+'" y="'+(PAD.top+cH+16)+'" text-anchor="'+(points.length>6?'end':'middle')+'" font-size="10" fill="'+textColor+'" '+rotate+'>'+label+'</text>';
+  });
+
+  svg += '</svg>';
+  el.innerHTML = svg;
+}
+
+// ── PIE CHART ──
+
+function renderPie(elId, data, maxSlices) {
+  var el = document.getElementById(elId);
+  if (!el) return;
+  var entries = Object.entries(data).sort(function(a,b){return b[1]-a[1];});
+  if (!entries.length) { el.innerHTML='<div style="padding:8px">Sin datos</div>'; return; }
+  var top = entries.slice(0, maxSlices);
+  var rest = entries.slice(maxSlices);
+  if (rest.length) {
+    var otrosTotal = rest.reduce(function(a,e){return a+e[1];},0);
+    top.push(['Otros', otrosTotal]);
+  }
+  var total = top.reduce(function(a,e){return a+e[1];},0);
+  var COLORS = ['#1a4fc8','#c8421a','#1a7a4a','#a855f7','#f59e0b','#06b6d4','#ec4899','#84cc16','#f97316','#6366f1','#8b8278'];
+  var SIZE = 220, CX = SIZE/2, CY = SIZE/2, R = 80, RI = 38;
+  var svg = '<svg viewBox="0 0 '+SIZE+' '+SIZE+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:220px;display:block;margin:0 auto">';
+  var startAngle = -Math.PI / 2;
+  var arcs = [];
+  top.forEach(function(e, i) {
+    var angle = (e[1] / total) * 2 * Math.PI;
+    var endAngle = startAngle + angle;
+    var x1 = CX + R * Math.cos(startAngle), y1 = CY + R * Math.sin(startAngle);
+    var x2 = CX + R * Math.cos(endAngle),   y2 = CY + R * Math.sin(endAngle);
+    var xi1 = CX + RI * Math.cos(startAngle), yi1 = CY + RI * Math.sin(startAngle);
+    var xi2 = CX + RI * Math.cos(endAngle),   yi2 = CY + RI * Math.sin(endAngle);
+    var large = angle > Math.PI ? 1 : 0;
+    var pct = (e[1]/total*100).toFixed(1);
+    var path = 'M '+x1+' '+y1+' A '+R+' '+R+' 0 '+large+' 1 '+x2+' '+y2
+             + ' L '+xi2+' '+yi2+' A '+RI+' '+RI+' 0 '+large+' 0 '+xi1+' '+yi1+' Z';
+    svg += '<path d="'+path+'" fill="'+COLORS[i % COLORS.length]+'" stroke="#fff" stroke-width="1.5"><title>'+e[0]+': '+pct+'%</title></path>';
+    arcs.push({name:e[0], pct:pct, val:e[1], color:COLORS[i%COLORS.length]});
+    startAngle = endAngle;
+  });
+  svg += '</svg>';
+  var legend = '<div style="display:flex;flex-direction:column;gap:4px;margin-top:10px">';
+  arcs.forEach(function(a) {
+    legend += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px">'
+      +'<div style="display:flex;align-items:center;gap:6px">'
+      +'<div style="width:10px;height:10px;border-radius:2px;flex-shrink:0;background:'+a.color+'"></div>'
+      +'<span style="color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px">'+esc(a.name)+'</span>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;flex-shrink:0">'
+      +'<span style="font-family:IBM Plex Mono,monospace;color:var(--green);font-weight:700">'+fmts(a.val)+'</span>'
+      +'<span style="font-family:IBM Plex Mono,monospace;color:var(--muted);width:40px;text-align:right">'+a.pct+'%</span>'
+      +'</div></div>';
+  });
+  legend += '</div>';
+  el.innerHTML = svg + legend;
+}
+
+// ══════════════════════════════════════════════════════
+// MÓDULO DROGUERÍA
+// ══════════════════════════════════════════════════════
+var DROG_ITEMS = [];   // rows from Hoja1
+var DROG_HIST  = [];   // rows from historico RESUMEN
+var DROG_PRICES = {};  // {id: {precio, nc}}  — edits
+
+function openDrogueria() {
+  document.getElementById('hubScreen').style.display = 'none';
+  document.getElementById('drogueriaScreen').style.display = 'flex';
+  drogRender();
+}
+function closeDrogueria() {
+  document.getElementById('drogueriaScreen').style.display = 'none';
+  document.getElementById('hubScreen').style.display = 'flex';
+}
+
+// ── File loaders ──
+document.getElementById('drogFileInput').addEventListener('change', function(e) {
+  var file = e.target.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var wb = XLSX.read(ev.target.result, {type:'array'});
+    var ws = wb.Sheets['Hoja1'] || wb.Sheets['LLAMADO'] || wb.Sheets[Object.keys(wb.Sheets)[0]];
+    if (!ws) { alert('No se encontró la hoja de cotización.'); return; }
+    var raw = XLSX.utils.sheet_to_json(ws, {defval:null});
+    DROG_ITEMS = raw.filter(function(r){ return r['ORDEN'] != null || r['ID'] != null; }).map(function(r) {
+      var nc = !r['PRECIO UNITARIO '] || String(r['PRECIO UNITARIO ']).trim().toUpperCase() === 'N/C';
+      var precio = nc ? null : (parseFloat(String(r['PRECIO UNITARIO ']).replace(',','.')) || null);
+      return {
+        orden: r['ORDEN'] || '',
+        id: r['ID'] || '',
+        expediente: r['EXPEDIENTE'] || '',
+        medicacion: r['MEDICACION'] || '',
+        residencia: r['RESIDENCIA'] ? String(r['RESIDENCIA']).toUpperCase().trim() : '',
+        cantidad: parseFloat(r['CANTIDAD']) || parseFloat(r['CANTIDAD oferta']) || 0,
+        precio_orig: precio,
+        nc_orig: nc,
+        marca: r['MARCA- PRESENTACIÓN- Y CANTIDAD DE ENVASES '] || ''
+      };
+    });
+    // Init edits from file
+    DROG_ITEMS.forEach(function(it) {
+      if (!DROG_PRICES[it.id]) {
+        DROG_PRICES[it.id] = {precio: it.precio_orig, nc: it.nc_orig};
+      }
+    });
+    e.target.value = '';
+    drogRender();
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+document.getElementById('drogHistInput').addEventListener('change', function(e) {
+  var file = e.target.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var wb = XLSX.read(ev.target.result, {type:'array'});
+    var ws = wb.Sheets['RESUMEN'];
+    if (!ws) { alert('No se encontró la hoja RESUMEN en el archivo histórico.'); return; }
+    var raw = XLSX.utils.sheet_to_json(ws, {defval:null});
+    DROG_HIST = raw;
+    var st=document.getElementById('drog-hist-status');
+    if(st)st.textContent=raw.length+' renglones cargados';
+    e.target.value = '';
+    drogRender();
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+// ── Get historico for an ID ──
+function drogGetHist(id) {
+  var rows = DROG_HIST.filter(function(r){ return r.ID === id && r.PRECIO_MIN != null; });
+  if (!rows.length) return [];
+  // Find winner for each row
+  var results = [];
+  rows.forEach(function(r) {
+    var pCols = getVendorCols([r]);
+    var winner = '—';
+    pCols.forEach(function(p) {
+      var v = r[p]; if (!v || v === 'N/C') return;
+      var price = parseFloat(String(v).replace(',','.'));
+      if (!isNaN(price) && Math.abs(price - r.PRECIO_MIN) < 0.1) winner = p;
+    });
+    var d = r.FECHA instanceof Date ? r.FECHA : new Date(r.FECHA);
+    var fs = isNaN(d) ? String(r.FECHA||'').slice(0,10) : (d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+    results.push({fecha: fs, precio_min: r.PRECIO_MIN, winner: winner});
+  });
+  results.sort(function(a,b){ return b.fecha.localeCompare(a.fecha); });
+  return results;
+}
+
+// ── Compute totals ──
+function drogTotals() {
+  var total = 0, cotiza = 0, nc = 0;
+  DROG_ITEMS.forEach(function(it) {
+    var ed = DROG_PRICES[it.id] || {};
+    if (ed.nc) { nc++; }
+    else if (ed.precio != null) {
+      cotiza++;
+      total += ed.precio * it.cantidad;
+    }
+  });
+  return {total: total, cotiza: cotiza, nc: nc};
+}
+
+// ── Render ──
+function drogRender() {
+  var content = document.getElementById('drog-content');
+
+  if (!DROG_ITEMS.length) {
+    content.innerHTML = '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--muted2)">'
+      +'<div style="font-size:44px;opacity:.35">&#128138;</div>'
+      +'<div style="font-family:IBM Plex Mono,monospace;font-size:12px;text-align:center;line-height:1.8">Cargá el archivo de cotización<br>para comenzar</div>'
+      +'<label for="drogFileInput" style="padding:12px 28px;background:var(--accent);color:#fff;border-radius:8px;cursor:pointer;font-family:IBM Plex Mono,monospace;font-size:12px;font-weight:600">&#128194; Cargar archivo droguería</label>'
+      +'</div>';
+    return;
+  }
+
+  var tots = drogTotals();
+
+  // KPIs
+  var kpis = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">'
+    +'<div class="sc ab"><div class="slabel">Renglones</div><div class="sval" style="font-size:28px;letter-spacing:0">'+DROG_ITEMS.length+'</div><div class="ssub">en esta compulsa</div></div>'
+    +'<div class="sc ab"><div class="slabel">Cotizando</div><div class="sval" style="font-size:28px;letter-spacing:0;color:var(--green)">'+tots.cotiza+'</div><div class="ssub">renglones con precio</div></div>'
+    +'<div class="sc ab"><div class="slabel">No cotiza</div><div class="sval" style="font-size:28px;letter-spacing:0;color:var(--muted)">'+tots.nc+'</div><div class="ssub">marcados N/C</div></div>'
+    +'<div class="sc ab"><div class="slabel">Total oferta</div><div class="sval" style="font-size:28px;letter-spacing:0;color:var(--accent2)">'+fmts(tots.total)+'</div><div class="ssub">precio × cantidad</div></div>'
+    +'</div>';
+
+  // Table
+  var histHeader = '<th style="width:80px">Hist. precios</th>';
+  var table = '<div class="tw"><div class="th"><h3>Cotización</h3>'
+    +'<div style="display:flex;gap:8px">'
+    +(DROG_HIST.length ? '' : '<label for="drogHistInput" style="padding:4px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;cursor:pointer;font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--muted)">+ Cargar histórico</label>')
+    +'<button onclick="drogExport()" style="padding:4px 14px;background:var(--green);border:none;color:#fff;border-radius:5px;cursor:pointer;font-family:IBM Plex Mono,monospace;font-size:11px;font-weight:600">&#8681; Exportar Excel</button>'
+    +'</div></div>'
+    +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
+    +'<thead><tr>'
+    +'<th style="text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-family:IBM Plex Mono,monospace;padding:9px 10px;border-bottom:1px solid var(--border);background:var(--surface2);width:36px">#</th>'
+    +'<th style="text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-family:IBM Plex Mono,monospace;padding:9px 10px;border-bottom:1px solid var(--border);background:var(--surface2)">Medicación</th>'
+    +'<th style="text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-family:IBM Plex Mono,monospace;padding:9px 10px;border-bottom:1px solid var(--border);background:var(--surface2)">Residencia</th>'
+    +'<th style="text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-family:IBM Plex Mono,monospace;padding:9px 10px;border-bottom:1px solid var(--border);background:var(--surface2)">Cantidad</th>'
+    +'<th style="text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-family:IBM Plex Mono,monospace;padding:9px 10px;border-bottom:1px solid var(--border);background:var(--surface2)">N/C</th>'
+    +'<th style="text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-family:IBM Plex Mono,monospace;padding:9px 10px;border-bottom:1px solid var(--border);background:var(--surface2)">Precio unitario</th>'
+    +'<th style="text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-family:IBM Plex Mono,monospace;padding:9px 10px;border-bottom:1px solid var(--border);background:var(--surface2)">Total renglón</th>'
+    + histHeader
+    +'</tr></thead><tbody id="drog-tbody"></tbody></table></div></div>';
+
+  content.innerHTML = kpis + table;
+
+  var tbody = document.getElementById('drog-tbody');
+  var rows = '';
+  DROG_ITEMS.forEach(function(it, i) {
+    var ed = DROG_PRICES[it.id] || {precio: it.precio_orig, nc: it.nc_orig};
+    var isNC = ed.nc;
+    var precio = ed.precio;
+    var total = (!isNC && precio != null) ? precio * it.cantidad : null;
+    var rowBg = isNC ? 'background:var(--surface2);opacity:.7' : (i%2===1?'background:var(--surface2)':'');
+
+    var hist = DROG_HIST.length ? drogGetHist(it.id) : [];
+    var btnStyle = hist.length
+      ? 'background:var(--accent2);color:#fff;border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:10px;font-family:IBM Plex Mono,monospace;font-weight:600'
+      : 'background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:3px 8px;cursor:'+(DROG_HIST.length?'pointer':'default')+';font-size:10px;font-family:IBM Plex Mono,monospace';
+    var histCell = '<td style="padding:7px 10px;text-align:center"><button class="drog-hist-btn" data-idx="'+i+'" style="'+btnStyle+'">'
+      +(hist.length ? '&#128200; '+hist.length : (DROG_HIST.length ? 'Sin datos' : 'Sin hist.'))
+      +'</button></td>';
+
+    rows += '<tr style="border-bottom:1px solid var(--border);'+rowBg+'" data-id="'+esc(it.id)+'">'
+      +'<td style="padding:7px 10px;font-size:11px;color:var(--muted);font-family:IBM Plex Mono,monospace">'+it.orden+'</td>'
+      +'<td style="padding:7px 10px;font-size:11px;max-width:220px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(it.medicacion)+'">'+esc(it.medicacion)+'</div></td>'
+      +'<td style="padding:7px 10px;font-size:11px">'+esc(it.residencia)+'</td>'
+      +'<td style="padding:7px 10px;font-size:11px;text-align:right;font-family:IBM Plex Mono,monospace">'+it.cantidad+'</td>'
+      +'<td style="padding:7px 10px;text-align:center"><input type="checkbox" class="drog-nc" data-id="'+esc(it.id)+'"'+(isNC?' checked':'')+' style="width:15px;height:15px;cursor:pointer;accent-color:var(--muted)"></td>'
+      +'<td style="padding:7px 10px;text-align:right"><input type="number" class="drog-precio" data-id="'+esc(it.id)+'" value="'+(precio!=null?precio:'')+'" '+(isNC?'disabled':'')+' placeholder="0.00" min="0" step="0.01" style="width:110px;text-align:right;font-family:IBM Plex Mono,monospace;font-size:11px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 7px;color:var(--text);'+(isNC?'opacity:.4':'')+'"></td>'
+      +'<td style="padding:7px 10px;font-size:11px;text-align:right;font-family:IBM Plex Mono,monospace;color:'+(total!=null?'var(--green)':'var(--muted2)')+';font-weight:'+(total!=null?700:400)+'" id="drog-total-'+i+'">'+(total!=null?fmt(total):'—')+'</td>'
+      + histCell
+      +'</tr>';
+  });
+  tbody.innerHTML = rows;
+
+  // Bind hist buttons
+  document.querySelectorAll('.drog-hist-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var idx = parseInt(this.dataset.idx);
+      var it = DROG_ITEMS[idx];
+      if (it) drogShowHist(it);
+    });
+  });
+
+  // Bind inputs
+  document.querySelectorAll('.drog-nc').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      var id = this.dataset.id;
+      if (!DROG_PRICES[id]) DROG_PRICES[id] = {};
+      DROG_PRICES[id].nc = this.checked;
+      if (this.checked) DROG_PRICES[id].precio = null;
+      drogRender();
+    });
+  });
+  document.querySelectorAll('.drog-precio').forEach(function(inp) {
+    inp.addEventListener('input', function() {
+      var id = this.dataset.id;
+      if (!DROG_PRICES[id]) DROG_PRICES[id] = {};
+      var v = parseFloat(this.value);
+      DROG_PRICES[id].precio = isNaN(v) ? null : v;
+      DROG_PRICES[id].nc = false;
+      // Update total cell inline
+      var tr = this.closest('tr');
+      var idx = Array.from(tr.parentNode.children).indexOf(tr);
+      var it = DROG_ITEMS[idx];
+      if (it) {
+        var total = (DROG_PRICES[id].precio != null) ? DROG_PRICES[id].precio * it.cantidad : null;
+        var cell = document.getElementById('drog-total-'+idx);
+        if (cell) {
+          cell.textContent = total != null ? fmt(total) : '—';
+          cell.style.color = total != null ? 'var(--green)' : 'var(--muted2)';
+        }
+      }
+      // Update KPIs
+      var t2 = drogTotals();
+      document.querySelectorAll('.sc.ab .sval').forEach(function(el, i) {
+        if (i===1) el.textContent = t2.cotiza;
+        if (i===2) el.textContent = t2.nc;
+        if (i===3) el.textContent = fmts(t2.total);
+      });
+    });
+  });
+}
+
+
+function drogShowHist(it) {
+  var hist = drogGetHist(it.id);
+  document.getElementById('drog-hist-title').textContent = it.medicacion;
+  document.getElementById('drog-hist-sub').textContent = 'ID: ' + it.id + '  ·  Cantidad: ' + it.cantidad;
+
+  var modal = document.getElementById('drog-hist-modal');
+  var body = document.getElementById('drog-hist-body');
+
+  if (!hist.length) {
+    body.innerHTML = '<div style="font-family:IBM Plex Mono,monospace;font-size:12px;color:var(--muted);padding:16px 0">No hay historial disponible para este renglón. Cargá el archivo unificado desde el sidebar.</div>';
+    modal.style.display = 'flex';
+    return;
+  }
+
+  // Summary stats
+  var precios = hist.map(function(h){return h.precio_min;}).filter(function(p){return p!=null;});
+  var minP = Math.min.apply(null, precios);
+  var maxP = Math.max.apply(null, precios);
+  var avgP = precios.reduce(function(a,b){return a+b;},0) / precios.length;
+  var ed = DROG_PRICES[it.id] || {};
+  var miPrecio = ed.nc ? null : ed.precio;
+
+  var stats = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px">';
+  stats += '<div class="sc ab"><div class="slabel">Compulsas</div><div class="sval" style="font-size:22px;letter-spacing:0">'+hist.length+'</div><div class="ssub">con este ID</div></div>';
+  stats += '<div class="sc ab"><div class="slabel">Precio mín hist.</div><div class="sval" style="font-size:22px;letter-spacing:0;color:var(--green)">'+fmt(minP)+'</div><div class="ssub">más bajo ganado</div></div>';
+  stats += '<div class="sc ab"><div class="slabel">Promedio</div><div class="sval" style="font-size:22px;letter-spacing:0;color:var(--accent2)">'+fmt(avgP)+'</div><div class="ssub">precio mínimo</div></div>';
+  stats += '<div class="sc ab"><div class="slabel">Mi precio</div><div class="sval" style="font-size:22px;letter-spacing:0;color:'+(miPrecio!=null?'var(--accent)':'var(--muted)')+'">'+( miPrecio!=null ? fmt(miPrecio) : (ed.nc?'N/C':'—') )+'</div><div class="ssub">'+(miPrecio!=null?(miPrecio<=minP?'&#9989; Competitivo':'&#9888; Por encima del mín'):'ingresá tu precio')+'</div></div>';
+  stats += '</div>';
+
+  // Detail table
+  var table = '<table style="width:100%;border-collapse:collapse"><thead><tr>'
+    +'<th style="text-align:left;font-size:10px;text-transform:uppercase;color:var(--muted);font-family:IBM Plex Mono,monospace;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--surface2)">Fecha compulsa</th>'
+    +'<th style="text-align:left;font-size:10px;text-transform:uppercase;color:var(--muted);font-family:IBM Plex Mono,monospace;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--surface2)">Ganador</th>'
+    +'<th style="text-align:right;font-size:10px;text-transform:uppercase;color:var(--muted);font-family:IBM Plex Mono,monospace;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--surface2)">Precio mín. ganado</th>'
+    +'<th style="text-align:center;font-size:10px;text-transform:uppercase;color:var(--muted);font-family:IBM Plex Mono,monospace;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--surface2)">vs mi precio</th>'
+    +'</tr></thead><tbody>';
+
+  hist.forEach(function(h, i) {
+    var diff = (miPrecio != null && h.precio_min != null) ? miPrecio - h.precio_min : null;
+    var diffStr = diff != null
+      ? (diff > 0 ? '<span style="color:var(--accent)">+'+fmt(diff)+'</span>' : (diff < 0 ? '<span style="color:var(--green)">'+fmt(diff)+'</span>' : '<span style="color:var(--muted)">Igual</span>'))
+      : '<span style="color:var(--muted2)">—</span>';
+    table += '<tr style="border-bottom:1px solid var(--border);'+(i%2===1?'background:var(--surface2)':'')+'">'
+      +'<td style="padding:9px 10px;font-size:11px;font-family:IBM Plex Mono,monospace;color:var(--muted)">'+esc(h.fecha)+'</td>'
+      +'<td style="padding:9px 10px;font-size:12px;font-weight:700;color:var(--accent2)">'+esc(h.winner)+'</td>'
+      +'<td style="padding:9px 10px;font-size:12px;text-align:right;font-family:IBM Plex Mono,monospace;color:var(--green);font-weight:700">'+fmt(h.precio_min)+'</td>'
+      +'<td style="padding:9px 10px;font-size:12px;text-align:center;font-family:IBM Plex Mono,monospace">'+diffStr+'</td>'
+      +'</tr>';
+  });
+  table += '</tbody></table>';
+
+  body.innerHTML = stats + table;
+  modal.style.display = 'flex';
+
+  document.getElementById('drog-hist-close').onclick = function() { modal.style.display = 'none'; };
+  modal.onclick = function(e) { if (e.target === modal) modal.style.display = 'none'; };
+}
+
+// ── Export to Excel ──
+function drogExport() {
+  if (!DROG_ITEMS.length) return;
+  var rows = DROG_ITEMS.map(function(it) {
+    var ed = DROG_PRICES[it.id] || {};
+    var precio = ed.nc ? 'N/C' : (ed.precio != null ? ed.precio : 'N/C');
+    var total = (!ed.nc && ed.precio != null) ? ed.precio * it.cantidad : '';
+    return {
+      'ORDEN': it.orden,
+      'ID': it.id,
+      'EXPEDIENTE': it.expediente,
+      'MEDICACION': it.medicacion,
+      'RESIDENCIA': it.residencia,
+      'CANTIDAD': it.cantidad,
+      'PRECIO UNITARIO': precio,
+      'PRECIO TOTAL': total,
+      'CANTIDAD oferta': it.cantidad,
+      'MARCA': it.marca
+    };
+  });
+  var ws = XLSX.utils.json_to_sheet(rows);
+  var wb2 = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb2, ws, 'Cotizacion');
+  XLSX.writeFile(wb2, 'cotizacion_completada.xlsx');
+}
+
+
+// ── EXPORT PDF ──
+function exportPDF() {
+  window.print();
+}
+
+// ── SMART DRUG FILTER ──
+window._allDrogas = [];
+
+function renderDrugChips() {
+  var chips = document.getElementById('drugChips');
+  if (!chips) return;
+  chips.innerHTML = state.drugs.map(function(d) {
+    return '<div class="drug-chip">'+esc(d)+'<button data-droga="'+esc(d)+'" onclick="removeDrug(this.dataset.droga)">&#215;</button></div>';
+  }).join('');
+}
+
+function removeDrug(droga) {
+  state.drugs = state.drugs.filter(function(d){return d!==droga;});
+  renderDrugChips();
+  state.resPage=1; state.detPage=1; render();
+}
+
+function clearDrugs() {
+  state.drugs = [];
+  renderDrugChips();
+  var inp = document.getElementById('drugSearchInput');
+  if(inp) inp.value='';
+  closeDropdown();
+  state.resPage=1; state.detPage=1; render();
+}
+
+function closeDropdown() {
+  var dd = document.getElementById('drugDropdown');
+  if(dd) dd.classList.remove('open');
+}
+
+function addDrug(droga) {
+  if (!state.drugs.includes(droga)) {
+    state.drugs.push(droga);
+    renderDrugChips();
+    state.resPage=1; state.detPage=1; render();
+  }
+  var inp = document.getElementById('drugSearchInput');
+  if(inp) { inp.value=''; inp.focus(); }
+  closeDropdown();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var inp = document.getElementById('drugSearchInput');
+  var dd  = document.getElementById('drugDropdown');
+  if (!inp || !dd) return;
+
+  inp.addEventListener('input', function() {
+    var q = this.value.trim().toUpperCase();
+    if (!q) { closeDropdown(); return; }
+    var matches = (window._allDrogas||[]).filter(function(d){
+      return d.toUpperCase().includes(q) && !state.drugs.includes(d);
+    }).slice(0,12);
+    if (!matches.length) { closeDropdown(); return; }
+    dd.innerHTML = matches.map(function(d, i) {
+      return '<div class="drug-option'+(i===0?' active':'')+'" data-droga="'+esc(d)+'">'+esc(d)+'</div>';
+    }).join('');
+    dd.classList.add('open');
+    dd.querySelectorAll('.drug-option').forEach(function(opt) {
+      opt.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        addDrug(this.dataset.droga);
+      });
+    });
+  });
+
+  inp.addEventListener('keydown', function(e) {
+    var opts = dd.querySelectorAll('.drug-option');
+    var activeIdx = Array.from(opts).findIndex(function(o){return o.classList.contains('active');});
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      var next = Math.min(activeIdx+1, opts.length-1);
+      opts.forEach(function(o){o.classList.remove('active');});
+      if(opts[next]) opts[next].classList.add('active');
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      var prev = Math.max(activeIdx-1, 0);
+      opts.forEach(function(o){o.classList.remove('active');});
+      if(opts[prev]) opts[prev].classList.add('active');
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      var active = dd.querySelector('.drug-option.active');
+      if(active) addDrug(active.dataset.droga);
+    } else if (e.key === 'Escape') {
+      closeDropdown();
+    }
+  });
+
+  inp.addEventListener('blur', function() {
+    setTimeout(closeDropdown, 150);
+  });
+});
+
+
+function printDrogaDet() {
+  var title = document.getElementById('droga-title').textContent;
+  var sub   = document.getElementById('droga-sub').textContent;
+  var table = document.querySelector('#droga-body').closest('table').outerHTML;
+  var footer = document.getElementById('droga-footer').innerHTML;
+  var win = window.open('', '_blank');
+  win.document.write('<html><head><title>' + title + '</title><style>'
+    + 'body{font-family:Arial,sans-serif;padding:24px;color:#1a1814}'
+    + 'h2{font-size:16px;margin:0 0 4px}'
+    + 'p{font-size:11px;color:#8a8278;margin:0 0 16px;font-family:monospace}'
+    + 'table{width:100%;border-collapse:collapse;font-size:12px}'
+    + 'th{background:#f5f3ef;text-align:left;padding:8px 10px;border-bottom:2px solid #e2ddd6;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#8a8278}'
+    + 'td{padding:8px 10px;border-bottom:1px solid #e2ddd6}'
+    + 'tr:nth-child(even){background:#faf9f7}'
+    + '.num{text-align:right}'
+    + '.footer{margin-top:14px;padding-top:10px;border-top:1px solid #e2ddd6;font-size:11px;color:#8a8278;font-family:monospace}'
+    + '@media print{body{padding:0}}'
+    + '</style></head><body>'
+    + '<h2>' + title + '</h2>'
+    + '<p>' + sub + '</p>'
+    + table
+    + '<div class="footer">' + footer + '</div>'
+    + '</body></html>');
+  win.document.close();
+  win.focus();
+  setTimeout(function(){ win.print(); }, 400);
+}
+
+// ── MULTI-SELECT PDF ──
+var _selectedDrogas = new Set();
+
+function updateDrogaSel() {
+  // Rebuild from scratch — never trust stale Set state
+  _selectedDrogas = new Set();
+  document.querySelectorAll('.droga-chk').forEach(function(chk) {
+    if (chk.checked) _selectedDrogas.add(chk.dataset.droga);
+  });
+  var n = _selectedDrogas.size;
+  var btn = document.getElementById('btn-print-sel');
+  var lbl = document.getElementById('sel-count-label');
+  if (btn) btn.style.display = n > 0 ? 'inline-block' : 'none';
+  if (lbl) lbl.textContent = n > 0 ? n + ' seleccionada' + (n>1?'s':'') : '';
+  // Sync select-all checkbox
+  var allChks = document.querySelectorAll('.droga-chk');
+  var chkAll = document.getElementById('chk-all-drogas');
+  if (chkAll) chkAll.checked = allChks.length > 0 && n === allChks.length;
+}
+
+function toggleAllDrogas(checked) {
+  document.querySelectorAll('.droga-chk').forEach(function(chk) {
+    chk.checked = checked;
+    if (checked) _selectedDrogas.add(chk.dataset.droga);
+    else _selectedDrogas.delete(chk.dataset.droga);
+  });
+  var btn = document.getElementById('btn-print-sel');
+  var lbl = document.getElementById('sel-count-label');
+  var n = _selectedDrogas.size;
+  if (btn) btn.style.display = n > 0 ? 'inline-block' : 'none';
+  if (lbl) lbl.textContent = n > 0 ? n + ' seleccionada' + (n>1?'s':'') : '';
+}
+
+function printSelectedDrogas() {
+  var drogas = Array.from(_selectedDrogas);
+  if (!drogas.length) return;
+
+  var fr = getRes();
+
+  var sections = drogas.map(function(droga) {
+    var items = fr.filter(function(r){return r.DROGA===droga && r.PRECIO_MIN!=null;})
+      .sort(function(a,b){return fechaStr(a.FECHA).localeCompare(fechaStr(b.FECHA));});
+
+    var winCount = {};
+    var rows = items.map(function(r) {
+      var provCols = getVendorCols([r]);
+      var winner = '—';
+      provCols.forEach(function(p){
+        var v=r[p];if(!v||v==='N/C')return;
+        var price=parseFloat(String(v).replace(',','.'));
+        if(!isNaN(price)&&Math.abs(price-r.PRECIO_MIN)<0.1){winner=p;winCount[p]=(winCount[p]||0)+1;}
+      });
+      var monto = r.PRECIO_MIN*(parseFloat(r.CANTIDAD_LICITADA)||0);
+      return '<tr>'
+        +'<td>'+esc(fechaStr(r.FECHA))+'</td>'
+        +'<td>'+esc(r.MEDICACION||'')+'</td>'
+        +'<td>'+esc(r.RESIDENCIA||'')+'</td>'
+        +'<td class="num">'+(r.CANTIDAD_LICITADA||'')+'</td>'
+        +'<td class="num">$'+Number(r.PRECIO_MIN).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2})+'</td>'
+        +'<td class="num">'+fmts(monto)+'</td>'
+        +'<td>'+esc(winner)+'</td>'
+        +'</tr>';
+    });
+
+    var podio = Object.entries(winCount).sort(function(a,b){return b[1]-a[1];}).slice(0,3)
+      .map(function(e,i){return ['🥇','🥈','🥉'][i]+' '+e[0]+' ('+e[1]+')'}).join(' &nbsp;|&nbsp; ');
+
+    return '<div class="section">'
+      +'<h2>'+esc(droga)+'</h2>'
+      +(podio?'<p class="podio">'+podio+'</p>':'')
+      +'<table><thead><tr><th>Fecha</th><th>Medicación</th><th>Residencia</th><th>Cant.</th><th>Precio mín.</th><th>Monto</th><th>Ganador 🏆</th></tr></thead>'
+      +'<tbody>'+rows.join('')+'</tbody></table>'
+      +'</div>';
+  }).join('');
+
+  var win = window.open('','_blank');
+  win.document.write('<html><head><title>Ranking de productos</title><style>'
+    +'body{font-family:Arial,sans-serif;padding:24px;color:#1a1814;font-size:12px}'
+    +'.section{margin-bottom:32px;page-break-inside:avoid}'
+    +'h2{font-size:15px;font-weight:700;margin:0 0 4px;color:#1a1814;border-bottom:2px solid #e2ddd6;padding-bottom:6px}'
+    +'.podio{font-size:11px;color:#1a4fc8;margin:0 0 10px;font-weight:600}'
+    +'table{width:100%;border-collapse:collapse;font-size:11px}'
+    +'th{background:#f5f3ef;text-align:left;padding:7px 8px;border-bottom:2px solid #e2ddd6;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#8a8278}'
+    +'td{padding:7px 8px;border-bottom:1px solid #e2ddd6}'
+    +'.num{text-align:right}'
+    +'tr:nth-child(even){background:#faf9f7}'
+    +'@media print{.section{page-break-after:always}}'
+    +'</style></head><body>'
+    +'<h1 style="font-size:18px;margin:0 0 4px">Ranking de productos</h1>'
+    +'<p style="font-size:11px;color:#8a8278;margin:0 0 24px;font-family:monospace">'+drogas.length+' droga'+( drogas.length>1?'s':'')+' seleccionada'+( drogas.length>1?'s':'')+'</p>'
+    +sections
+    +'</body></html>');
+  win.document.close();
+  win.focus();
+  setTimeout(function(){win.print();},400);
+}
+
+function printDet() {
+  var title  = document.getElementById('dl-title').textContent;
+  var idLine = document.getElementById('dl-id').textContent;
+  var metas  = document.getElementById('dl-meta');
+  var table  = document.getElementById('dl-offers').closest('table').outerHTML;
+
+  // Build meta section as key-value pairs
+  var metaHTML = '<div class="meta">';
+  metas.querySelectorAll('.dmi').forEach(function(m) {
+    var l = m.querySelector('.dl'); var v = m.querySelector('.dv');
+    if(l && v) metaHTML += '<div><span class="ml">'+l.textContent+':</span> <span class="mv">'+v.innerHTML+'</span></div>';
+  });
+  metaHTML += '</div>';
+
+  var win = window.open('', '_blank');
+  win.document.write('<html><head><title>'+title+'</title><style>'
+    +'body{font-family:Arial,sans-serif;padding:24px;color:#1a1814;font-size:12px}'
+    +'h2{font-size:16px;font-weight:700;margin:0 0 3px}'
+    +'.sub{font-size:11px;color:#8a8278;margin:0 0 12px;font-family:monospace}'
+    +'.meta{display:flex;flex-wrap:wrap;gap:6px 20px;margin-bottom:14px;padding:10px 14px;background:#f5f3ef;border-radius:6px;font-size:11px}'
+    +'.ml{color:#8a8278;text-transform:uppercase;font-size:10px;letter-spacing:.5px}'
+    +'.mv{font-weight:600;color:#1a1814}'
+    +'h3{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#8a8278;margin:0 0 8px}'
+    +'table{width:100%;border-collapse:collapse;font-size:12px}'
+    +'th{background:#f5f3ef;text-align:left;padding:8px 10px;border-bottom:2px solid #e2ddd6;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#8a8278}'
+    +'td{padding:8px 10px;border-bottom:1px solid #e2ddd6}'
+    +'.num{text-align:right}'
+    +'tr.im{background:#f0fdf4}'
+    +'tr.im td:first-child{font-weight:700;color:#1a7a4a}'
+    +'@media print{body{padding:0}}'
+    +'</style></head><body>'
+    +'<h2>'+title+'</h2>'
+    +'<p class="sub">'+idLine+'</p>'
+    + metaHTML
+    +'<h3>Cotizaciones recibidas</h3>'
+    + table
+    +'</body></html>');
+  win.document.close();
+  win.focus();
+  setTimeout(function(){ win.print(); }, 400);
+}
+
+// ══ RANKING MARCAS ══
+var _marcaSort = {col:'total', dir:'desc'};
+
+function sortMarca(col) {
+  if (_marcaSort.col===col) _marcaSort.dir = _marcaSort.dir==='asc'?'desc':'asc';
+  else { _marcaSort.col=col; _marcaSort.dir=col==='marca'?'asc':'desc'; }
+  renderMarcaRanking(getDet());
+}
+
+function renderMarcaRanking(fd) {
+  var si = fd.filter(function(d){ return d.COTIZA==='SI' && d.MARCA_PRESENTACION && d.MARCA_PRESENTACION!=='N/C'; });
+  
+  // Group by marca
+  var marcaData = {};
+  si.forEach(function(d) {
+    var marca = String(d.MARCA_PRESENTACION).trim();
+    if (!marca || marca==='N/C') return;
+    if (!marcaData[marca]) marcaData[marca] = {marca:marca, total:0, items:0, drogas:new Set(), provs:new Set()};
+    var pt = parseFloat(String(d.PRECIO_TOTAL||'').replace(',','.'));
+    if (!isNaN(pt)) marcaData[marca].total += pt;
+    marcaData[marca].items++;
+    if (d.ID) marcaData[marca].drogas.add(d.ID);
+    if (d.PROVEEDOR) marcaData[marca].provs.add(d.PROVEEDOR);
+  });
+
+  var rows = Object.values(marcaData).map(function(m){ return {marca:m.marca, total:m.total, items:m.items, drogas:m.drogas.size, proveedor:Array.from(m.provs).join(', ')}; });
+  
+  // Sort
+  rows.sort(function(a,b){
+    var v = _marcaSort.col==='marca' ? a.marca.localeCompare(b.marca) : (b[_marcaSort.col]-a[_marcaSort.col]);
+    return _marcaSort.dir==='asc' ? -v : v;
+  });
+
+  var el = document.getElementById('marca-count');
+  if (el) el.textContent = rows.length + ' marcas';
+  var tbody = document.getElementById('marcaBody');
+  if (!tbody) return;
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;text-align:center;font-family:IBM Plex Mono,monospace;font-size:12px;color:var(--muted)">Sin datos de marca disponibles. El archivo debe tener columna MARCA_PRESENTACION.</td></tr>';
+    return;
+  }
+
+  var maxTotal = rows.length ? rows[0].total : 1;
+  var totalSum = rows.reduce(function(a,r){ return a+r.total; }, 0);
+
+  tbody.innerHTML = rows.map(function(r, i) {
+    var medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1);
+    var pct = totalSum>0 ? (r.total/totalSum*100).toFixed(1) : '0.0';
+    var bw = maxTotal>0 ? (r.total/maxTotal*100).toFixed(1) : '0';
+    var col = i===0?'var(--green)':i===1?'var(--accent2)':i===2?'var(--accent)':'var(--border)';
+    return '<tr style="border-bottom:1px solid var(--border);'+(i===0?'background:var(--surface2)':'')+'">'
+      +'<td class="num" style="font-size:13px;color:var(--muted)">'+medal+'</td>'
+      +'<td style="max-width:280px"><div class="trunc" title="'+esc(r.marca)+'"><span style="font-weight:'+(i<3?700:400)+'">'+esc(r.marca)+'</span><div style="font-size:10px;color:var(--muted);font-family:IBM Plex Mono,monospace;margin-top:2px">'+esc(r.proveedor)+'</div></div></td>'
+      +'<td class="num" style="color:var(--green);font-weight:700">'+fmts(r.total)+'</td>'
+      +'<td class="num">'+r.items+'</td>'
+      +'<td style="min-width:140px"><div style="display:flex;align-items:center;gap:8px">'
+      +'<div style="flex:1;background:var(--surface2);border-radius:3px;height:6px;overflow:hidden"><div style="width:'+bw+'%;height:100%;border-radius:3px;background:'+col+'"></div></div>'
+      +'<span style="font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--muted);width:38px;text-align:right">'+pct+'%</span>'
+      +'</div></td>'
+      +'</tr>';
+  }).join('');
+
+  // Update sort indicators
+  var cols = ['marca','total','items',''];
+  document.querySelectorAll('#marcaTable thead th').forEach(function(th,i){
+    th.classList.remove('sa','sd');
+    if(cols[i]===_marcaSort.col) th.classList.add(_marcaSort.dir==='asc'?'sa':'sd');
+  });
+}
+
+// ── FILTER PROD BY PROVEEDOR ──
+var _provFilter = '';
+
+function filterProdByProv(val) {
+  _provFilter = val.trim().toUpperCase();
+  var lbl = document.getElementById('prov-search-label');
+  var btn = document.getElementById('prov-search-clear');
+  if (_provFilter) {
+    if (lbl) lbl.textContent = 'Filtrando por: ' + val.trim();
+    if (btn) btn.style.display = 'inline-block';
+  } else {
+    if (lbl) lbl.textContent = '';
+    if (btn) btn.style.display = 'none';
+  }
+  renderProductRanking(getRes());
+}
+
+function clearProvSearch() {
+  _provFilter = '';
+  var inp = document.getElementById('prov-search-input');
+  if (inp) inp.value = '';
+  var lbl = document.getElementById('prov-search-label');
+  var btn = document.getElementById('prov-search-clear');
+  if (lbl) lbl.textContent = '';
+  if (btn) btn.style.display = 'none';
+  renderProductRanking(getRes());
+}
+</script>
+</div>
+</body>
+</html>
