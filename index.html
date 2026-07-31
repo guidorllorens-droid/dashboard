@@ -809,6 +809,16 @@ async function loadFromSupabase(){
     };
     return Object.assign(base, row.vendor_prices || {});
   });
+  // getVendorCols() arma la lista de proveedores mirando las claves del
+  // PRIMER renglón de RESUMEN. Como vendor_prices solo trae los proveedores
+  // que cotizaron ESE ítem puntual (para no guardar N/C de más), un renglón
+  // con pocos oferentes dejaría fuera del ranking a todos los demás
+  // proveedores del resto del dataset. Se completa cada renglón con TODAS
+  // las columnas de proveedor vistas en cualquier renglón (en null si no
+  // cotizó ahí), igual que hacía el Excel original.
+  const allVendors = new Set();
+  RESUMEN.forEach(r => { Object.keys(r).forEach(k => { if (!META_COLS.has(k)) allVendors.add(k); }); });
+  RESUMEN.forEach(r => { allVendors.forEach(v => { if (!(v in r)) r[v] = null; }); });
   DETALLE = detResp.data.map(row => ({
     FECHA: row.fecha ? new Date(row.fecha + 'T00:00:00') : null,
     PROVEEDOR: row.proveedor,
