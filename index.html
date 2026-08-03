@@ -775,22 +775,31 @@ async function fetchAllRows(table, onProgress){
   return all;
 }
 
+// Reconstruye el panel que esté visible en ese momento con los datos
+// actuales — se usa al terminar de cargar DETALLE en segundo plano, por si
+// el usuario ya está mirando una pestaña que lo necesita (Cotizaciones,
+// Ranking marcas, Analítica).
+function refreshVisibleTab(){
+  const activePanel = document.querySelector('.tab-panel.active');
+  if (activePanel) showTab(activePanel.id.replace('tab-',''));
+  render();
+}
+
 async function loadFromSupabase(){
   document.getElementById('loadScreen').style.display = 'flex';
   document.getElementById('loadTitle').textContent = 'Cargando compulsas con ofertas…';
   setProgress(10, 'Conectando…');
-  let resumenData, detalleData;
+  let resumenData;
   try {
-    resumenData = await fetchAllRows('resumen', n => setProgress(10 + Math.min(n/50, 30), 'Descargando resumen… ('+n+')'));
-    detalleData = await fetchAllRows('detalle', n => setProgress(40 + Math.min(n/3000, 25), 'Descargando cotizaciones… ('+n+')'));
+    resumenData = await fetchAllRows('resumen', n => setProgress(10 + Math.min(n/30, 60), 'Descargando ítems… ('+n+')'));
   } catch (error) {
     document.getElementById('loadScreen').style.display = 'none';
     alert('Error cargando datos: ' + error.message);
     document.getElementById('homeScreen').style.display = 'flex';
     return;
   }
-  const resResp = { data: resumenData }, detResp = { data: detalleData };
-  setProgress(65, 'Procesando…');
+  const resResp = { data: resumenData };
+  setProgress(80, 'Procesando…');
   RESUMEN = resResp.data.map(row => {
     const base = {
       FECHA: row.fecha ? new Date(row.fecha + 'T00:00:00') : null,
@@ -818,7 +827,24 @@ async function loadFromSupabase(){
   const allVendors = new Set();
   RESUMEN.forEach(r => { Object.keys(r).forEach(k => { if (!META_COLS.has(k)) allVendors.add(k); }); });
   RESUMEN.forEach(r => { allVendors.forEach(v => { if (!(v in r)) r[v] = null; }); });
-  DETALLE = detResp.data.map(row => ({
+  RESUMEN.forEach((r,i)=>{ r._idx = i; });
+  // DETALLE (73 mil filas) NO hace falta para mostrar el dashboard — solo la
+  // usan "Ranking marcas", "Cotizaciones" y el botón "Ver" de cada ítem. Se
+  // muestra todo lo demás ya, y DETALLE se sigue bajando atrás sin bloquear.
+  DETALLE = [];
+  MODE = 'jueves';
+  setProgress(95, 'Construyendo interfaz…');
+  setTimeout(() => {
+    buildUI();
+    document.getElementById('loadScreen').style.display = 'none';
+    document.getElementById('mainHeader').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'flex';
+    loadDetalleInBackground();
+  }, 200);
+}
+
+function mapDetalleRow(row){
+  return {
     FECHA: row.fecha ? new Date(row.fecha + 'T00:00:00') : null,
     PROVEEDOR: row.proveedor,
     ORDEN: row.orden,
@@ -832,16 +858,19 @@ async function loadFromSupabase(){
     PRECIO_TOTAL: row.precio_total,
     CANTIDAD_OFERTADA: row.cantidad_ofertada,
     MARCA_PRESENTACION: row.marca_presentacion,
-  }));
-  RESUMEN.forEach((r,i)=>{ r._idx = i; });
-  MODE = 'jueves';
-  setProgress(90, 'Construyendo interfaz…');
-  setTimeout(() => {
-    buildUI();
-    document.getElementById('loadScreen').style.display = 'none';
-    document.getElementById('mainHeader').style.display = 'flex';
-    document.getElementById('mainApp').style.display = 'flex';
-  }, 200);
+  };
+}
+
+async function loadDetalleInBackground(){
+  const badge = document.getElementById('headerCount');
+  try {
+    const detalleData = await fetchAllRows('detalle');
+    DETALLE = detalleData.map(mapDetalleRow);
+    refreshVisibleTab();
+  } catch (error) {
+    console.error('Error cargando cotizaciones:', error.message);
+    if (badge) badge.title = 'No se pudieron cargar las cotizaciones: ' + error.message;
+  }
 }
 
 // Si ya había una sesión activa (recargaste la página), entrar directo sin pedir login de nuevo
@@ -2984,38 +3013,4 @@ function renderMarcaRanking(fd) {
   var cols = ['marca','total','items',''];
   document.querySelectorAll('#marcaTable thead th').forEach(function(th,i){
     th.classList.remove('sa','sd');
-    if(cols[i]===_marcaSort.col) th.classList.add(_marcaSort.dir==='asc'?'sa':'sd');
-  });
-}
-
-// ── FILTER PROD BY PROVEEDOR ──
-var _provFilter = '';
-
-function filterProdByProv(val) {
-  _provFilter = val.trim().toUpperCase();
-  var lbl = document.getElementById('prov-search-label');
-  var btn = document.getElementById('prov-search-clear');
-  if (_provFilter) {
-    if (lbl) lbl.textContent = 'Filtrando por: ' + val.trim();
-    if (btn) btn.style.display = 'inline-block';
-  } else {
-    if (lbl) lbl.textContent = '';
-    if (btn) btn.style.display = 'none';
-  }
-  renderProductRanking(getRes());
-}
-
-function clearProvSearch() {
-  _provFilter = '';
-  var inp = document.getElementById('prov-search-input');
-  if (inp) inp.value = '';
-  var lbl = document.getElementById('prov-search-label');
-  var btn = document.getElementById('prov-search-clear');
-  if (lbl) lbl.textContent = '';
-  if (btn) btn.style.display = 'none';
-  renderProductRanking(getRes());
-}
-</script>
-</div>
-</body>
-</html>
+    if(cols[i]===_marcaSort.col) th.classList.add(_
