@@ -610,7 +610,8 @@ td.num{font-family:'IBM Plex Mono',monospace;text-align:right;font-size:11px}
     </div>
     <div class="fg" id="fechaFilterGroup" style="display:none">
       <div class="fl">Fecha <span style="display:flex;gap:6px"><button onclick="clearFechas()">Todas</button><button onclick="clearFechas(false)">Ninguna</button></span></div>
-      <div id="fechaCheckboxes" style="display:flex;flex-direction:column;gap:4px;max-height:140px;overflow-y:auto;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;"></div>
+      <input type="text" class="sel-search" placeholder="Buscar fecha…" oninput="filterSelect('fechaFilter',this.value)">
+      <select id="fechaFilter" multiple onchange="updateFechas()"></select>
     </div>
     <div class="fg">
       <div class="fl">Residencia <button onclick="clearSel('residenciaFilter')">Limpiar</button></div>
@@ -711,7 +712,7 @@ let _prodSort = {col:'total', dir:'desc'};
 
 // Columnas fijas del RESUMEN que NO son proveedores. Cualquier otra columna
 // del Excel se interpreta como una columna de precio por proveedor.
-const META_COLS = new Set(['FECHA','ORDEN','ID','MEDICACION','RESIDENCIA','DROGA','FORMA','POTENCIA','CANTIDAD_LICITADA','PRECIO_MIN','CANT_PROVEEDORES','TOTAL_RENGLON']);
+const META_COLS = new Set(['FECHA','ORDEN','ID','MEDICACION','RESIDENCIA','DROGA','FORMA','POTENCIA','CANTIDAD_LICITADA','PRECIO_MIN','CANT_PROVEEDORES','TOTAL_RENGLON','_idx']);
 function getVendorCols(rows){
   return rows && rows.length ? Object.keys(rows[0]).filter(k=>!META_COLS.has(k)) : [];
 }
@@ -1261,18 +1262,18 @@ function initFilters() {
   const residencias = [...new Set([...RESUMEN,...DETALLE].map(r=>r.RESIDENCIA).filter(Boolean))].sort();
   window._allDrogas = drogas; renderDrugChips(); pop('residenciaFilter', residencias);
   if (MODE==='jueves') {
-    const provs = [...new Set(DETALLE.map(d=>d.PROVEEDOR).filter(Boolean))].sort();
+    // getVendorCols(RESUMEN), no DETALLE: la lista de proveedores tiene que
+    // estar lista de entrada, sin depender de que DETALLE (que se carga
+    // después, en segundo plano) ya haya terminado de bajar.
+    const provs = getVendorCols(RESUMEN).sort();
     pop('provFilter', provs);
-    // Populate fecha checkboxes
+    // Fecha: más reciente primero
     const fechaGroup = document.getElementById('fechaFilterGroup');
     if (fechaGroup) fechaGroup.style.display = '';
-    const fechas = [...new Set(RESUMEN.map(r=>fechaStr(r.FECHA)).filter(Boolean))].sort();
-    const box = document.getElementById('fechaCheckboxes');
-    if (box) {
-      box.innerHTML = fechas.map(f =>
-        '<label class="fecha-check-label"><input type="checkbox" value="'+f+'" checked onchange="updateFechas()"> '+f+'</label>'
-      ).join('');
-    }
+    const fechas = [...new Set(RESUMEN.map(r=>fechaStr(r.FECHA)).filter(Boolean))].sort().reverse();
+    pop('fechaFilter', fechas);
+    const fechaSel = document.getElementById('fechaFilter');
+    if (fechaSel) for (const o of fechaSel.options) o.selected = true;
     state.fechas = []; // empty = all selected
   }
 }
@@ -1387,23 +1388,33 @@ function renderStats(fr,fd){
   }
   const si=fd.filter(d=>d.COTIZA==='SI');
   document.getElementById('s-drogas').textContent=new Set(fr.map(r=>r.DROGA).filter(Boolean)).size;
-  // idsConOferta: only DETALLE rows for IDs+FECHA combos present in fr
-  // This prevents cross-date contamination (same ID appears in multiple dates)
-  const frKeys=new Set(fr.map(r=>r.ID+'|'+fechaStr(r.FECHA)));
-  const idsConOferta=new Set(
-    DETALLE.filter(d=>d.COTIZA==='SI'&&frKeys.has(d.ID+'|'+fechaStr(d.FECHA))).map(d=>d.ID+'|'+fechaStr(d.FECHA))
-  );
-  const sinCotiz=fr.filter(r=>!idsConOferta.has(r.ID+'|'+fechaStr(r.FECHA)));
-  document.getElementById('s-sincotiz').textContent=sinCotiz.length;
-  document.getElementById('s-sincotiz-sub').textContent=sinCotiz.length===1?'renglón sin oferta':'renglones sin oferta';
-  if(state._winnerOnly&&fr.length){
-    const wonIDs=new Set(fr.map(r=>r.ID));
-    const comp=new Set(DETALLE.filter(d=>wonIDs.has(d.ID)&&d.COTIZA==='SI'&&d.PROVEEDOR!==state._winnerOnly).map(d=>d.PROVEEDOR));
-    document.getElementById('s-provs').textContent=comp.size;
-    document.getElementById('s-provs-sub').textContent='competidores enfrentados';
+  // DETALLE se baja en segundo plano y puede tardar unos segundos: mientras
+  // esté vacío, "Proveedores" y "Sin cotizar" (que dependen de DETALLE) no
+  // tienen un valor confiable todavía — mostrar "cargando…" en vez de 0.
+  if(DETALLE.length===0 && RESUMEN.length>0){
+    document.getElementById('s-sincotiz').textContent='—';
+    document.getElementById('s-sincotiz-sub').textContent='cargando…';
+    document.getElementById('s-provs').textContent='—';
+    document.getElementById('s-provs-sub').textContent='cargando…';
   } else {
-    document.getElementById('s-provs').textContent=new Set(fd.map(d=>d.PROVEEDOR).filter(Boolean)).size;
-    document.getElementById('s-provs-sub').textContent='en la selección';
+    // idsConOferta: only DETALLE rows for IDs+FECHA combos present in fr
+    // This prevents cross-date contamination (same ID appears in multiple dates)
+    const frKeys=new Set(fr.map(r=>r.ID+'|'+fechaStr(r.FECHA)));
+    const idsConOferta=new Set(
+      DETALLE.filter(d=>d.COTIZA==='SI'&&frKeys.has(d.ID+'|'+fechaStr(d.FECHA))).map(d=>d.ID+'|'+fechaStr(d.FECHA))
+    );
+    const sinCotiz=fr.filter(r=>!idsConOferta.has(r.ID+'|'+fechaStr(r.FECHA)));
+    document.getElementById('s-sincotiz').textContent=sinCotiz.length;
+    document.getElementById('s-sincotiz-sub').textContent=sinCotiz.length===1?'renglón sin oferta':'renglones sin oferta';
+    if(state._winnerOnly&&fr.length){
+      const wonIDs=new Set(fr.map(r=>r.ID));
+      const comp=new Set(DETALLE.filter(d=>wonIDs.has(d.ID)&&d.COTIZA==='SI'&&d.PROVEEDOR!==state._winnerOnly).map(d=>d.PROVEEDOR));
+      document.getElementById('s-provs').textContent=comp.size;
+      document.getElementById('s-provs-sub').textContent='competidores enfrentados';
+    } else {
+      document.getElementById('s-provs').textContent=new Set(fd.map(d=>d.PROVEEDOR).filter(Boolean)).size;
+      document.getElementById('s-provs-sub').textContent='en la selección';
+    }
   }
   const provCols=getVendorCols(fr);
   const winCount={},winTotal={};
@@ -1839,7 +1850,7 @@ function updateFromSelects(){
   state._sinCotizOnly=false;state._winnerOnly=null;state.resPage=1;state.detPage=1;render();
 }
 function resetFilters(){
-  state.search='';state.drugs=[];state.formas=[];state.residencias=[];state.provs=[]; renderDrugChips();
+  state.search='';state.drugs=[];state.formas=[];state.residencias=[];state.provs=[];state.fechas=[]; renderDrugChips();
   state.cotiza='all';state.resPage=1;state.detPage=1;state._sinCotizOnly=false;state._winnerOnly=null;
   const sb=document.getElementById('searchBox');if(sb)sb.value='';
   ['residenciaFilter','provFilter'].forEach(id=>{
@@ -1847,7 +1858,11 @@ function resetFilters(){
     const si=sel.previousElementSibling;if(si&&si.classList.contains('sel-search'))si.value='';
     filterSelect(id,'');for(const o of sel.options)o.selected=false;
   });
-  document.querySelectorAll('#fechaCheckboxes input[type=checkbox]').forEach(c=>{c.checked=true;});
+  const fechaSel=document.getElementById('fechaFilter');
+  if(fechaSel){
+    const fsi=fechaSel.previousElementSibling;if(fsi&&fsi.classList.contains('sel-search'))fsi.value='';
+    filterSelect('fechaFilter','');for(const o of fechaSel.options)o.selected=true;
+  }
   const ca=document.getElementById('c-all');if(ca){['all','si','no'].forEach(k=>{const b=document.getElementById('c-'+k);if(b)b.className='cbtn';});ca.classList.add('a-all');}
   render();
 }
@@ -2214,12 +2229,13 @@ function fechaStr(val) {
 }
 
 function updateFechas() {
-  var boxes = document.querySelectorAll('#fechaCheckboxes input[type=checkbox]');
-  var checked = Array.from(boxes).filter(function(c){return c.checked;}).map(function(c){return c.value;});
+  var sel = document.getElementById('fechaFilter');
+  var total = _allOpts['fechaFilter'] ? _allOpts['fechaFilter'].length : sel.options.length;
+  var checked = [...sel.selectedOptions].map(function(o){return o.value;});
   if (checked.length === 0) {
-    state.fechas = ['__NONE__']; // no dates selected = show nothing
-  } else if (checked.length === boxes.length) {
-    state.fechas = []; // all selected = no filter
+    state.fechas = ['__NONE__']; // no hay fechas seleccionadas = no mostrar nada
+  } else if (checked.length === total) {
+    state.fechas = []; // todas seleccionadas = sin filtro
   } else {
     state.fechas = checked;
   }
@@ -2228,7 +2244,8 @@ function updateFechas() {
 
 function clearFechas(selectAll) {
   var val = (selectAll === false) ? false : true;
-  document.querySelectorAll('#fechaCheckboxes input[type=checkbox]').forEach(function(c){c.checked=val;});
+  var sel = document.getElementById('fechaFilter');
+  if (sel) for (const o of sel.options) o.selected = val;
   state.fechas = val ? [] : ['__NONE__'];
   state.resPage=1; state.detPage=1; render();
 }
