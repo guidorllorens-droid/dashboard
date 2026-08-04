@@ -209,6 +209,26 @@ select[multiple]{height:90px}
 .sel-search{font-size:11px;padding:5px 8px;height:auto;margin-bottom:2px}
 .divider{height:1px;background:var(--border)}
 
+/* ── CHECKLIST DROPDOWN (estilo filtro de Excel) ── */
+.ddrop{position:relative}
+.ddrop-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 9px;font-family:'Barlow',sans-serif;font-size:12px;cursor:pointer;text-align:left}
+.ddrop-btn:hover{border-color:var(--accent)}
+.ddrop.open .ddrop-btn{border-color:var(--accent2)}
+.ddrop-btn-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.ddrop-arrow{color:var(--muted);font-size:10px;flex-shrink:0;transition:transform .15s}
+.ddrop.open .ddrop-arrow{transform:rotate(180deg)}
+.ddrop-panel{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:210;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:8px}
+.ddrop.open .ddrop-panel{display:block}
+.ddrop-search{font-size:11px;padding:5px 8px;margin-bottom:6px}
+.ddrop-actions{display:flex;gap:6px;margin-bottom:6px}
+.ddrop-actions button{flex:1;font-size:10px;padding:4px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace}
+.ddrop-actions button:hover{border-color:var(--accent2);color:var(--accent2)}
+.ddrop-list{max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:1px}
+.ddrop-item{display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text);cursor:pointer;padding:4px 4px;border-radius:4px}
+.ddrop-item:hover{background:var(--surface2)}
+.ddrop-item input{accent-color:var(--accent2);width:13px;height:13px;cursor:pointer;flex-shrink:0}
+.ddrop-empty{font-size:11px;color:var(--muted2);padding:8px;text-align:center;font-family:'IBM Plex Mono',monospace}
+
 /* ── STATS ── */
 .stats-layout{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;grid-template-rows:auto auto;gap:10px}
 .sc-big{grid-column:span 2;min-height:130px;display:flex;flex-direction:column;justify-content:space-between}
@@ -601,28 +621,49 @@ td.num{font-family:'IBM Plex Mono',monospace;text-align:right;font-size:11px}
     </div>
     <div class="divider"></div>
     <div class="fg">
-      <div class="fl">Droga <button onclick="clearDrugs()">Limpiar</button></div>
-      <div class="drug-search-wrap">
-        <input type="text" class="drug-search-input" id="drugSearchInput" placeholder="Buscar droga…" autocomplete="off">
-        <div class="drug-dropdown" id="drugDropdown"></div>
+      <div class="fl">Droga <button onclick="ddropSelectAll('drogaDrop',false)">Limpiar</button></div>
+      <div class="ddrop" id="drogaDrop">
+        <button type="button" class="ddrop-btn" onclick="ddropToggleOpen('drogaDrop')"><span class="ddrop-btn-label" id="drogaDropLabel">Todas</span><span class="ddrop-arrow">▾</span></button>
+        <div class="ddrop-panel">
+          <input type="text" class="ddrop-search" placeholder="Buscar droga…" oninput="ddropSearch('drogaDrop',this.value)">
+          <div class="ddrop-actions"><button type="button" onclick="ddropSelectAll('drogaDrop',true)">Todas</button><button type="button" onclick="ddropSelectAll('drogaDrop',false)">Ninguna</button></div>
+          <div class="ddrop-list" id="drogaDropList"></div>
+        </div>
       </div>
-      <div class="drug-chips" id="drugChips"></div>
     </div>
     <div class="fg" id="fechaFilterGroup" style="display:none">
-      <div class="fl">Fecha <span style="display:flex;gap:6px"><button onclick="clearFechas()">Todas</button><button onclick="clearFechas(false)">Ninguna</button></span></div>
-      <input type="text" class="sel-search" placeholder="Buscar fecha…" oninput="filterSelect('fechaFilter',this.value)">
-      <select id="fechaFilter" multiple onchange="updateFechas()"></select>
+      <div class="fl">Fecha <button onclick="ddropSelectAll('fechaDrop',false)">Limpiar</button></div>
+      <div class="ddrop" id="fechaDrop">
+        <button type="button" class="ddrop-btn" onclick="ddropToggleOpen('fechaDrop')"><span class="ddrop-btn-label" id="fechaDropLabel">Todas</span><span class="ddrop-arrow">▾</span></button>
+        <div class="ddrop-panel">
+          <input type="text" class="ddrop-search" placeholder="Buscar fecha…" oninput="ddropSearch('fechaDrop',this.value)">
+          <div class="ddrop-actions"><button type="button" onclick="ddropSelectAll('fechaDrop',true)">Todas</button><button type="button" onclick="ddropSelectAll('fechaDrop',false)">Ninguna</button></div>
+          <div class="ddrop-list" id="fechaDropList"></div>
+        </div>
+      </div>
     </div>
     <div class="fg">
-      <div class="fl">Residencia <button onclick="clearSel('residenciaFilter')">Limpiar</button></div>
-      <input type="text" class="sel-search" placeholder="Buscar residencia…" oninput="filterSelect('residenciaFilter',this.value)">
-      <select id="residenciaFilter" multiple></select>
+      <div class="fl">Residencia <button onclick="ddropSelectAll('residenciaDrop',false)">Limpiar</button></div>
+      <div class="ddrop" id="residenciaDrop">
+        <button type="button" class="ddrop-btn" onclick="ddropToggleOpen('residenciaDrop')"><span class="ddrop-btn-label" id="residenciaDropLabel">Todas</span><span class="ddrop-arrow">▾</span></button>
+        <div class="ddrop-panel">
+          <input type="text" class="ddrop-search" placeholder="Buscar residencia…" oninput="ddropSearch('residenciaDrop',this.value)">
+          <div class="ddrop-actions"><button type="button" onclick="ddropSelectAll('residenciaDrop',true)">Todas</button><button type="button" onclick="ddropSelectAll('residenciaDrop',false)">Ninguna</button></div>
+          <div class="ddrop-list" id="residenciaDropList"></div>
+        </div>
+      </div>
     </div>
     <!-- Proveedor filter only shown for Jueves mode -->
     <div class="fg" id="provFilterGroup" style="display:none">
-      <div class="fl">Proveedor <button onclick="clearSel('provFilter')">Limpiar</button></div>
-      <input type="text" class="sel-search" placeholder="Buscar proveedor…" oninput="filterSelect('provFilter',this.value)">
-      <select id="provFilter" multiple></select>
+      <div class="fl">Proveedor <button onclick="ddropSelectAll('provDrop',false)">Limpiar</button></div>
+      <div class="ddrop" id="provDrop">
+        <button type="button" class="ddrop-btn" onclick="ddropToggleOpen('provDrop')"><span class="ddrop-btn-label" id="provDropLabel">Todas</span><span class="ddrop-arrow">▾</span></button>
+        <div class="ddrop-panel">
+          <input type="text" class="ddrop-search" placeholder="Buscar proveedor…" oninput="ddropSearch('provDrop',this.value)">
+          <div class="ddrop-actions"><button type="button" onclick="ddropSelectAll('provDrop',true)">Todas</button><button type="button" onclick="ddropSelectAll('provDrop',false)">Ninguna</button></div>
+          <div class="ddrop-list" id="provDropList"></div>
+        </div>
+      </div>
     </div>
     <!-- Cotiza toggle only for Jueves -->
     <div class="fg" id="cotizaGroup" style="display:none">
@@ -1259,39 +1300,96 @@ function buildJuevesContent() {
 // ══ FILTER INIT ══
 function initFilters() {
   const drogas = [...new Set(RESUMEN.map(r=>r.DROGA).filter(Boolean))].sort();
-  const residencias = [...new Set([...RESUMEN,...DETALLE].map(r=>r.RESIDENCIA).filter(Boolean))].sort();
-  window._allDrogas = drogas; renderDrugChips(); pop('residenciaFilter', residencias);
+  const residencias = [...new Set(RESUMEN.map(r=>r.RESIDENCIA).filter(Boolean))].sort();
+  ddropSetup('drogaDrop', drogas, [], true, sel=>{
+    state.drugs = sel; state.resPage=1; state.detPage=1; render();
+  });
+  ddropSetup('residenciaDrop', residencias, [], true, sel=>{
+    state.residencias = sel; state.resPage=1; state.detPage=1; render();
+  });
   if (MODE==='jueves') {
     // getVendorCols(RESUMEN), no DETALLE: la lista de proveedores tiene que
     // estar lista de entrada, sin depender de que DETALLE (que se carga
     // después, en segundo plano) ya haya terminado de bajar.
     const provs = getVendorCols(RESUMEN).sort();
-    pop('provFilter', provs);
-    // Fecha: más reciente primero
+    ddropSetup('provDrop', provs, [], true, sel=>{
+      state.provs = sel; state.resPage=1; state.detPage=1; render();
+    });
+    // Fecha: más reciente primero. Acá "0 seleccionadas" sí significa "no
+    // mostrar nada" (no hay forma de pedir "sin fecha"), así que arranca
+    // con todas tildadas — al revés que droga/residencia/proveedor.
     const fechaGroup = document.getElementById('fechaFilterGroup');
     if (fechaGroup) fechaGroup.style.display = '';
     const fechas = [...new Set(RESUMEN.map(r=>fechaStr(r.FECHA)).filter(Boolean))].sort().reverse();
-    pop('fechaFilter', fechas);
-    const fechaSel = document.getElementById('fechaFilter');
-    if (fechaSel) for (const o of fechaSel.options) o.selected = true;
-    state.fechas = []; // empty = all selected
+    ddropSetup('fechaDrop', fechas, fechas, false, sel=>{
+      if (sel.length === 0) state.fechas = ['__NONE__'];
+      else if (sel.length === fechas.length) state.fechas = [];
+      else state.fechas = sel;
+      state.resPage=1; state.detPage=1; render();
+    });
   }
 }
-function pop(id, arr) {
-  const el = document.getElementById(id); if(!el) return;
-  el.innerHTML=''; _allOpts[id]=arr;
-  arr.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;el.appendChild(o);});
+
+// ══ CHECKLIST DROPDOWN (estilo filtro de Excel) — Droga/Fecha/Residencia/Proveedor ══
+const _ddrop = {}; // id -> {all:[], selected:Set, zeroMeansAll:bool, onChange:fn}
+
+function ddropSetup(id, values, selected, zeroMeansAll, onChange) {
+  _ddrop[id] = { all: values, selected: new Set(selected), zeroMeansAll, onChange };
+  const panel = document.querySelector('#'+id+' .ddrop-search');
+  if (panel) panel.value = '';
+  ddropRenderList(id, '');
+  ddropUpdateLabel(id);
 }
-function filterSelect(id, query) {
-  const el=document.getElementById(id); if(!el) return;
-  const q=query.toLowerCase().trim(), all=_allOpts[id]||[];
-  const selected=new Set([...el.selectedOptions].map(o=>o.value));
-  el.innerHTML='';
-  all.filter(v=>!q||v.toLowerCase().includes(q)).forEach(v=>{
-    const o=document.createElement('option');o.value=v;o.textContent=v;
-    if(selected.has(v))o.selected=true;el.appendChild(o);
+
+function ddropRenderList(id, query) {
+  const d = _ddrop[id]; if (!d) return;
+  const listEl = document.getElementById(id+'List'); if (!listEl) return;
+  const q = (query||'').toLowerCase().trim();
+  const filtered = d.all.filter(v => !q || String(v).toLowerCase().includes(q));
+  listEl.innerHTML = filtered.length ? filtered.map(v => {
+    const checked = d.selected.has(v) ? 'checked' : '';
+    const ev = esc(String(v));
+    return '<label class="ddrop-item"><input type="checkbox" '+checked+' onchange="ddropToggle(\''+id+'\',this)" data-val="'+ev+'"> '+ev+'</label>';
+  }).join('') : '<div class="ddrop-empty">Sin resultados</div>';
+}
+
+function ddropSearch(id, query) { ddropRenderList(id, query); }
+
+function ddropToggle(id, checkboxEl) {
+  const d = _ddrop[id]; if (!d) return;
+  const val = checkboxEl.dataset.val;
+  if (checkboxEl.checked) d.selected.add(val); else d.selected.delete(val);
+  ddropUpdateLabel(id);
+  d.onChange([...d.selected]);
+}
+
+function ddropSelectAll(id, val) {
+  const d = _ddrop[id]; if (!d) return;
+  d.selected = new Set(val ? d.all : []);
+  const searchInp = document.querySelector('#'+id+' .ddrop-search');
+  ddropRenderList(id, searchInp ? searchInp.value : '');
+  ddropUpdateLabel(id);
+  d.onChange([...d.selected]);
+}
+
+function ddropUpdateLabel(id) {
+  const d = _ddrop[id]; const labelEl = document.getElementById(id+'Label'); if (!labelEl || !d) return;
+  const n = d.selected.size, total = d.all.length;
+  if (total === 0) labelEl.textContent = 'Sin datos';
+  else if (n === total) labelEl.textContent = 'Todas';
+  else if (n === 0) labelEl.textContent = d.zeroMeansAll ? 'Todas' : 'Ninguna';
+  else labelEl.textContent = n + ' seleccionada' + (n!==1?'s':'');
+}
+
+function ddropToggleOpen(id) {
+  document.querySelectorAll('.ddrop.open').forEach(el => { if (el.id!==id) el.classList.remove('open'); });
+  document.getElementById(id).classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+  document.querySelectorAll('.ddrop.open').forEach(el => {
+    if (!el.contains(e.target)) el.classList.remove('open');
   });
-}
+});
 
 // ══ FILTER LOGIC ══
 function getRes() {
@@ -1842,27 +1940,12 @@ function setCotiza(v){
   ['all','si','no'].forEach(k=>{const b=document.getElementById('c-'+k);if(b){b.className='cbtn';if(k===v)b.classList.add('a-'+k);}});
   render();
 }
-function clearSel(id){const el=document.getElementById(id);if(!el)return;for(const o of el.options)o.selected=false;updateFromSelects();}
-function updateFromSelects(){
-  // state.drugs managed by smart filter
-  state.residencias=[...document.getElementById('residenciaFilter').selectedOptions].map(o=>o.value);
-  if(MODE==='jueves'&&document.getElementById('provFilter'))state.provs=[...document.getElementById('provFilter').selectedOptions].map(o=>o.value);
-  state._sinCotizOnly=false;state._winnerOnly=null;state.resPage=1;state.detPage=1;render();
-}
 function resetFilters(){
-  state.search='';state.drugs=[];state.formas=[];state.residencias=[];state.provs=[];state.fechas=[]; renderDrugChips();
+  state.search='';state.drugs=[];state.formas=[];state.residencias=[];state.provs=[];state.fechas=[];
   state.cotiza='all';state.resPage=1;state.detPage=1;state._sinCotizOnly=false;state._winnerOnly=null;
   const sb=document.getElementById('searchBox');if(sb)sb.value='';
-  ['residenciaFilter','provFilter'].forEach(id=>{
-    const sel=document.getElementById(id);if(!sel)return;
-    const si=sel.previousElementSibling;if(si&&si.classList.contains('sel-search'))si.value='';
-    filterSelect(id,'');for(const o of sel.options)o.selected=false;
-  });
-  const fechaSel=document.getElementById('fechaFilter');
-  if(fechaSel){
-    const fsi=fechaSel.previousElementSibling;if(fsi&&fsi.classList.contains('sel-search'))fsi.value='';
-    filterSelect('fechaFilter','');for(const o of fechaSel.options)o.selected=true;
-  }
+  ['drogaDrop','residenciaDrop','provDrop'].forEach(id=>{ if(_ddrop[id]) ddropSelectAll(id,false); });
+  if(_ddrop['fechaDrop']) ddropSelectAll('fechaDrop',true);
   const ca=document.getElementById('c-all');if(ca){['all','si','no'].forEach(k=>{const b=document.getElementById('c-'+k);if(b)b.className='cbtn';});ca.classList.add('a-all');}
   render();
 }
@@ -1902,9 +1985,6 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDet();closeDro
 
 document.getElementById('searchBox').addEventListener('input',e=>{
   state.search=e.target.value;state.resPage=1;state.detPage=1;render();
-});
-['residenciaFilter','provFilter'].forEach(id=>{
-  const el=document.getElementById(id);if(el)el.addEventListener('change',updateFromSelects);
 });
 
 // ══ MODULO HISTORICO ══
@@ -2226,28 +2306,6 @@ function fechaStr(val) {
       + String(val.getDate()).padStart(2,'0');
   }
   return String(val).slice(0,10);
-}
-
-function updateFechas() {
-  var sel = document.getElementById('fechaFilter');
-  var total = _allOpts['fechaFilter'] ? _allOpts['fechaFilter'].length : sel.options.length;
-  var checked = [...sel.selectedOptions].map(function(o){return o.value;});
-  if (checked.length === 0) {
-    state.fechas = ['__NONE__']; // no hay fechas seleccionadas = no mostrar nada
-  } else if (checked.length === total) {
-    state.fechas = []; // todas seleccionadas = sin filtro
-  } else {
-    state.fechas = checked;
-  }
-  state.resPage=1; state.detPage=1; render();
-}
-
-function clearFechas(selectAll) {
-  var val = (selectAll === false) ? false : true;
-  var sel = document.getElementById('fechaFilter');
-  if (sel) for (const o of sel.options) o.selected = val;
-  state.fechas = val ? [] : ['__NONE__'];
-  state.resPage=1; state.detPage=1; render();
 }
 
 // ── LINE CHART: Erogación por compulsa ──
@@ -2702,98 +2760,6 @@ function exportPDF() {
   window.print();
 }
 
-// ── SMART DRUG FILTER ──
-window._allDrogas = [];
-
-function renderDrugChips() {
-  var chips = document.getElementById('drugChips');
-  if (!chips) return;
-  chips.innerHTML = state.drugs.map(function(d) {
-    return '<div class="drug-chip">'+esc(d)+'<button data-droga="'+esc(d)+'" onclick="removeDrug(this.dataset.droga)">&#215;</button></div>';
-  }).join('');
-}
-
-function removeDrug(droga) {
-  state.drugs = state.drugs.filter(function(d){return d!==droga;});
-  renderDrugChips();
-  state.resPage=1; state.detPage=1; render();
-}
-
-function clearDrugs() {
-  state.drugs = [];
-  renderDrugChips();
-  var inp = document.getElementById('drugSearchInput');
-  if(inp) inp.value='';
-  closeDropdown();
-  state.resPage=1; state.detPage=1; render();
-}
-
-function closeDropdown() {
-  var dd = document.getElementById('drugDropdown');
-  if(dd) dd.classList.remove('open');
-}
-
-function addDrug(droga) {
-  if (!state.drugs.includes(droga)) {
-    state.drugs.push(droga);
-    renderDrugChips();
-    state.resPage=1; state.detPage=1; render();
-  }
-  var inp = document.getElementById('drugSearchInput');
-  if(inp) { inp.value=''; inp.focus(); }
-  closeDropdown();
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  var inp = document.getElementById('drugSearchInput');
-  var dd  = document.getElementById('drugDropdown');
-  if (!inp || !dd) return;
-
-  inp.addEventListener('input', function() {
-    var q = this.value.trim().toUpperCase();
-    if (!q) { closeDropdown(); return; }
-    var matches = (window._allDrogas||[]).filter(function(d){
-      return d.toUpperCase().includes(q) && !state.drugs.includes(d);
-    }).slice(0,12);
-    if (!matches.length) { closeDropdown(); return; }
-    dd.innerHTML = matches.map(function(d, i) {
-      return '<div class="drug-option'+(i===0?' active':'')+'" data-droga="'+esc(d)+'">'+esc(d)+'</div>';
-    }).join('');
-    dd.classList.add('open');
-    dd.querySelectorAll('.drug-option').forEach(function(opt) {
-      opt.addEventListener('mousedown', function(e) {
-        e.preventDefault();
-        addDrug(this.dataset.droga);
-      });
-    });
-  });
-
-  inp.addEventListener('keydown', function(e) {
-    var opts = dd.querySelectorAll('.drug-option');
-    var activeIdx = Array.from(opts).findIndex(function(o){return o.classList.contains('active');});
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      var next = Math.min(activeIdx+1, opts.length-1);
-      opts.forEach(function(o){o.classList.remove('active');});
-      if(opts[next]) opts[next].classList.add('active');
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      var prev = Math.max(activeIdx-1, 0);
-      opts.forEach(function(o){o.classList.remove('active');});
-      if(opts[prev]) opts[prev].classList.add('active');
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      var active = dd.querySelector('.drug-option.active');
-      if(active) addDrug(active.dataset.droga);
-    } else if (e.key === 'Escape') {
-      closeDropdown();
-    }
-  });
-
-  inp.addEventListener('blur', function() {
-    setTimeout(closeDropdown, 150);
-  });
-});
 
 
 function printDrogaDet() {
